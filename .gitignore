@@ -1,52 +1,51 @@
-# Prerequisites
-*.d
-
-# Object files
+# ========================
+# Build artifacts
+# ========================
 *.o
-*.ko
-*.obj
+*.d
 *.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
+*.bin
 *.hex
+*.axf
+*.lst
+*.map
+*.out
+*.a
+*.so
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# ========================
+# IDE & Toolchain files
+# ========================
+# Keil
+*.uvprojx
+*.uvoptx
+*.uvguix.*
+JLinkLog.txt
+JLinkSettings.ini
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# STM32CubeIDE / Eclipse
+.cproject
+.project
+.settings/
+Debug/
+Release/
+*.launch
+
+# Makefile-based builds
+build/
+obj/
+*.mk
+
+# ========================
+# Temporary & OS files
+# ========================
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================
+# Debugger & Flasher
+# ========================
+*.log
+openocd.cfg
