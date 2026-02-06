@@ -1,5 +1,5 @@
-#ifndef I2C_H
-#define I2C_H
+#ifndef IMU_UTIL_
+#define IMU_UTIL_
 
 #include <stdint.h>
 
