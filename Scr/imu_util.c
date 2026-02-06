@@ -4,6 +4,10 @@
 #include "imu_util.h"
 //local func's
 void TIM3_IRQHandler(void);
+void I2C1_Start(void);
+void I2C1_Stop(void);
+uint8_t I2C1_WriteByte(uint8_t data);
+uint8_t I2C1_ReadByte(uint8_t nack);
 
 //variables
 volatile uint8_t sensor_ready = 0;
@@ -137,14 +141,13 @@ uint8_t I2C1_ReadByte(uint8_t nack)
 }
 
 
-
 uint8_t ReadWhoAmI(void)
 {
     uint8_t data = 0;
     //start
     I2C1_Start();
     //addres + W
-    I2C1->DR = (0x68 << 1) | 0; 
+    I2C1->DR = ADDR_WRITE(ACCELER_ADDRES); 
     
 
     while (!(I2C1->SR1 & I2C_SR1_ADDR)) {
@@ -164,7 +167,7 @@ uint8_t ReadWhoAmI(void)
 		//SR
     I2C1_Start();
 		//addres + R
-    I2C1->DR = (0x68 << 1) | 1; 
+    I2C1->DR = ADDR_READ(ACCELER_ADDRES); 
     
     while (!(I2C1->SR1 & I2C_SR1_ADDR)) {
         if (I2C1->SR1 & I2C_SR1_AF) {
@@ -186,7 +189,7 @@ void I2C1_ctrl_reg_gyro(void)
     //start
     I2C1_Start();
     //addres + W
-    I2C1->DR = (0x68 << 1) | 0; 
+    I2C1->DR = ADDR_WRITE(GYRO_ADDRES); 
     
 
     while (!(I2C1->SR1 & I2C_SR1_ADDR)) {
