@@ -12,11 +12,13 @@ int main(void)
 {
 	RCC_Init();
 	sysTickInit();
+	//usart+dma
 	GPIO_USART1_Init();
 	USART1_Init();
 	DMA2_USART1_RX_TX_Init();
-
 	usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
+	
+	//I2C
 	
   while(1)
 	{
