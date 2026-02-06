@@ -3,11 +3,11 @@
 <title>Static Call Graph - [.\Objects\task1.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\task1.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6160001: Last Updated: Sat Jan 31 00:47:11 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6160001: Last Updated: Fri Feb  6 20:57:21 2026
 <BR><P>
-<H3>Maximum Stack Usage =         40 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
+<H3>Maximum Stack Usage =         32 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
-USART1_IRQHandler &rArr; usart1_Transm_byte
+__rt_entry_main &rArr; main &rArr; usart1_Transm_str &rArr; usart1_Transm_byte
 <P>
 <H3>
 Functions with no stack information
@@ -516,11 +516,11 @@ Global Symbols
 
 <P><STRONG><a name="[8a]"></a>__semihosting_library_function</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, indicate_semi.o(.text), UNUSED)
 
-<P><STRONG><a name="[5f]"></a>DMA2_USART1_RX_Init</STRONG> (Thumb, 82 bytes, Stack size 0 bytes, usart.o(.text.DMA2_USART1_RX_Init))
+<P><STRONG><a name="[5e]"></a>DMA2_USART1_RX_TX_Init</STRONG> (Thumb, 112 bytes, Stack size 0 bytes, usart.o(.text.DMA2_USART1_RX_TX_Init))
 <BR><BR>[Called By]<UL><LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[5e]"></a>GPIO_USART1_Init</STRONG> (Thumb, 144 bytes, Stack size 0 bytes, usart.o(.text.GPIO_USART1_Init))
+<P><STRONG><a name="[5d]"></a>GPIO_USART1_Init</STRONG> (Thumb, 144 bytes, Stack size 0 bytes, usart.o(.text.GPIO_USART1_Init))
 <BR><BR>[Called By]<UL><LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
@@ -542,17 +542,15 @@ Global Symbols
 <P><STRONG><a name="[42]"></a>SystemInit</STRONG> (Thumb, 26 bytes, Stack size 0 bytes, system_stm32f4xx.o(.text.SystemInit))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f401xc.o(.text)
 </UL>
-<P><STRONG><a name="[2b]"></a>USART1_IRQHandler</STRONG> (Thumb, 98 bytes, Stack size 24 bytes, usart.o(.text.USART1_IRQHandler))
-<BR><BR>[Stack]<UL><LI>Max Depth = 40<LI>Call Chain = USART1_IRQHandler &rArr; usart1_Transm_byte
-</UL>
-<BR>[Calls]<UL><LI><a href="#[5a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;usart1_Transm_byte
+<P><STRONG><a name="[2b]"></a>USART1_IRQHandler</STRONG> (Thumb, 100 bytes, Stack size 4 bytes, usart.o(.text.USART1_IRQHandler))
+<BR><BR>[Stack]<UL><LI>Max Depth = 4<LI>Call Chain = USART1_IRQHandler
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f401xc.o(RESET)
 </UL>
-<P><STRONG><a name="[5b]"></a>USART1_Init</STRONG> (Thumb, 72 bytes, Stack size 8 bytes, usart.o(.text.USART1_Init))
+<P><STRONG><a name="[5a]"></a>USART1_Init</STRONG> (Thumb, 72 bytes, Stack size 8 bytes, usart.o(.text.USART1_Init))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = USART1_Init
 </UL>
-<BR>[Calls]<UL><LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__NVIC_EnableIRQ
+<BR>[Calls]<UL><LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__NVIC_EnableIRQ
 </UL>
 <BR>[Called By]<UL><LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
@@ -560,31 +558,30 @@ Global Symbols
 <P><STRONG><a name="[50]"></a>main</STRONG> (Thumb, 32 bytes, Stack size 0 bytes, main.o(.text.main))
 <BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = main &rArr; usart1_Transm_str &rArr; usart1_Transm_byte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[60]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;usart1_Transm_str
-<LI><a href="#[5d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;sysTickInit
-<LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;USART1_Init
+<BR>[Calls]<UL><LI><a href="#[5f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;usart1_Transm_str
+<LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;sysTickInit
+<LI><a href="#[5a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;USART1_Init
 <LI><a href="#[58]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RCC_Init
-<LI><a href="#[5e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_USART1_Init
-<LI><a href="#[5f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DMA2_USART1_RX_Init
+<LI><a href="#[5d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_USART1_Init
+<LI><a href="#[5e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DMA2_USART1_RX_TX_Init
 </UL>
 <BR>[Called By]<UL><LI><a href="#[4f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_entry_main
 </UL>
 
-<P><STRONG><a name="[5d]"></a>sysTickInit</STRONG> (Thumb, 60 bytes, Stack size 0 bytes, system.o(.text.sysTickInit))
+<P><STRONG><a name="[5c]"></a>sysTickInit</STRONG> (Thumb, 60 bytes, Stack size 0 bytes, system.o(.text.sysTickInit))
 <BR><BR>[Called By]<UL><LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[5a]"></a>usart1_Transm_byte</STRONG> (Thumb, 60 bytes, Stack size 16 bytes, usart.o(.text.usart1_Transm_byte))
+<P><STRONG><a name="[60]"></a>usart1_Transm_byte</STRONG> (Thumb, 60 bytes, Stack size 16 bytes, usart.o(.text.usart1_Transm_byte))
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = usart1_Transm_byte
 </UL>
-<BR>[Called By]<UL><LI><a href="#[2b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;USART1_IRQHandler
-<LI><a href="#[60]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;usart1_Transm_str
+<BR>[Called By]<UL><LI><a href="#[5f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;usart1_Transm_str
 </UL>
 
-<P><STRONG><a name="[60]"></a>usart1_Transm_str</STRONG> (Thumb, 36 bytes, Stack size 16 bytes, usart.o(.text.usart1_Transm_str))
+<P><STRONG><a name="[5f]"></a>usart1_Transm_str</STRONG> (Thumb, 36 bytes, Stack size 16 bytes, usart.o(.text.usart1_Transm_str))
 <BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = usart1_Transm_str &rArr; usart1_Transm_byte
 </UL>
-<BR>[Calls]<UL><LI><a href="#[5a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;usart1_Transm_byte
+<BR>[Calls]<UL><LI><a href="#[60]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;usart1_Transm_byte
 </UL>
 <BR>[Called By]<UL><LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
@@ -600,8 +597,8 @@ Global Symbols
 <H3>
 Local Symbols
 </H3>
-<P><STRONG><a name="[5c]"></a>__NVIC_EnableIRQ</STRONG> (Thumb, 14 bytes, Stack size 0 bytes, usart.o(.text.__NVIC_EnableIRQ))
-<BR><BR>[Called By]<UL><LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;USART1_Init
+<P><STRONG><a name="[5b]"></a>__NVIC_EnableIRQ</STRONG> (Thumb, 14 bytes, Stack size 0 bytes, usart.o(.text.__NVIC_EnableIRQ))
+<BR><BR>[Called By]<UL><LI><a href="#[5a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;USART1_Init
 </UL>
 <P>
 <H3>

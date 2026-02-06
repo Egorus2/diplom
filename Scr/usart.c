@@ -71,7 +71,7 @@ void USART1_Init(void)
 	USART1->CR1 |= USART_CR1_UE;
 	
 	//dma enable receiver
-	USART1->CR3 |= USART_CR3_DMAR;
+	USART1->CR3 |= USART_CR3_DMAR | USART_CR3_DMAT;
 	
 	// interrupt settings
 	
@@ -82,15 +82,17 @@ void USART1_Init(void)
 	
 }
 
-void DMA2_USART1_RX_Init(void)
+void DMA2_USART1_RX_TX_Init(void)
 /*
- * @brief  DMA2 USART1 initialization 
+ * @brief  DMA2 USART1 initialization RX
  * @param  None
  * @retval None
  */
 {
 	//RCC
 	RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
+	
+	//RX//
 	// turn off dma stream to set up
 	DMA2_Stream5->CR &= ~DMA_SxCR_EN;
 	while(DMA2_Stream5->CR & DMA_SxCR_EN);
@@ -100,13 +102,30 @@ void DMA2_USART1_RX_Init(void)
 	DMA2_Stream5->M0AR = (uint32_t)rx_buffer;
 	//size of buffer
 	DMA2_Stream5->NDTR = (uint16_t)MAX_LEN_RX;
-	//config for DMA // channel 4, memory increment, circular mode
+	//config for DMA // channel 4, memory increment, circular mode, per->mem
 	DMA2_Stream5->CR = (4UL << DMA_SxCR_CHSEL_Pos) | 
 											DMA_SxCR_MINC | 
 											DMA_SxCR_CIRC;
 	//enable DMA
 	DMA2_Stream5->CR |= DMA_SxCR_EN;
+	
+	//TX//
+	// turn off dma stream to set up
+	DMA2_Stream7->CR &= ~DMA_SxCR_EN;
+	while(DMA2_Stream7->CR & DMA_SxCR_EN);
+	//Peripheral address
+	DMA2_Stream7->PAR = (uint32_t)&(USART1->DR);
+	//Memory address
+	DMA2_Stream7->M0AR = (uint32_t)rx_buffer;
+	//size of buffer
+	DMA2_Stream7->NDTR = 0;
+	//config for DMA // channel 4, memory increment, mem->per
+	DMA2_Stream7->CR = (4UL << DMA_SxCR_CHSEL_Pos) | 
+											DMA_SxCR_MINC | 
+											DMA_SxCR_DIR_0;
+
 }
+
 
 uint8_t usart1_Transm_byte(uint8_t byte, uint8_t Timout_ms)
 /*
@@ -212,25 +231,22 @@ void USART1_IRQHandler(void)
 		//sequence to clear IDLE flag
 		volatile uint32_t tmp = USART1->SR;
 		tmp = USART1->DR;
-		//stop DMA
+		//stop DMA RX
 		DMA2_Stream5->CR &= ~DMA_SxCR_EN;
 		while(DMA2_Stream5->CR & DMA_SxCR_EN);
 		// length of current package
 		uint32_t ndtr = DMA2_Stream5->NDTR;
-		uint32_t len = MAX_LEN_RX - ndtr;
-
-//		usart1_Transm_byte('L', 10);
-//		usart1_Transm_byte('=', 10);
-//		usart1_Transm_byte('0' + (len / 10) % 10, 10);
-//		usart1_Transm_byte('0' + len % 10, 10);
-//		usart1_Transm_byte('\r', 10);
-//		usart1_Transm_byte('\n', 10);			
+		uint32_t len = MAX_LEN_RX - ndtr;	
 		
-		for(uint32_t i = 0; i < len; i++)
-		{
-			usart1_Transm_byte(rx_buffer[i], 5);
-		}
+		//clear end of tx flag
+		DMA2->HIFCR |= DMA_HIFCR_CTCIF7;
+		//stop DMA TX
+		DMA2_Stream7->CR &= ~DMA_SxCR_EN;
+		while(DMA2_Stream7->CR & DMA_SxCR_EN);
+		DMA2_Stream7->NDTR = len;   //len of transmit 
+		
 		//reenable DMA
+		DMA2_Stream7->CR |= DMA_SxCR_EN;
 		DMA2_Stream5->CR |= DMA_SxCR_EN;
 	}
 	
