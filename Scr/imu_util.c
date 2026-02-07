@@ -8,6 +8,7 @@ void I2C1_Start(void);
 void I2C1_Stop(void);
 uint8_t I2C1_WriteByte(uint8_t data);
 uint8_t I2C1_ReadByte(uint8_t nack);
+uint8_t I2C_ADDR(uint8_t Address, uint8_t write_read);
 
 //variables
 volatile uint8_t sensor_ready = 0;
@@ -121,6 +122,11 @@ uint8_t I2C1_WriteByte(uint8_t data)
 }
 	
 uint8_t I2C1_ReadByte(uint8_t nack)
+/*
+ * @brief  I2C Read Byte func
+ * @param  this is the last pack? 1 - yes, 0 - no
+ * @retval data
+ */
 {
     if (nack) {
 			I2C1->CR1 |= I2C_CR1_STOP;
@@ -140,131 +146,157 @@ uint8_t I2C1_ReadByte(uint8_t nack)
     return data;
 }
 
+uint8_t I2C_ADDR(uint8_t Address, uint8_t write_read)
+/*
+ * @brief  i2c send device address
+ * @param  address of device, read - 1 write - 0
+ * @retval status 0 - ok, 1 - error
+ */
+{
+	if(write_read)
+	{
+		I2C1->DR = ADDR_READ(Address); 
+	}
+	else
+	{
+		I2C1->DR = ADDR_WRITE(Address); 
+	}
+
+	while (!(I2C1->SR1 & I2C_SR1_ADDR)) {
+			if (I2C1->SR1 & I2C_SR1_AF) {
+					I2C1->SR1 &= ~I2C_SR1_AF;
+					I2C1_Stop();
+					return 1;
+			}
+	}
+	
+	(void)I2C1->SR1; 
+	(void)I2C1->SR2;
+	return 0;
+}
 
 uint8_t ReadWhoAmI(void)
+/*
+ * @brief  a function for reading the device address
+ * @param  None
+ * @retval device address
+ */
 {
-    uint8_t data = 0;
-    //start
-    I2C1_Start();
-    //addres + W
-    I2C1->DR = ADDR_WRITE(ACCELER_ADDRES); 
-    
+	uint8_t data = 0;
+	//start
+	I2C1_Start();
+	//addres + W
+	if(I2C_ADDR(GYRO_ADDRES, WRITE)) 
+		return 0xFF;
+	//subaddres
+	I2C1->DR = 0x0F;
+	while (!(I2C1->SR1 & I2C_SR1_BTF));  
+	
+	//SR
+	I2C1_Start();
+	//addres + R
+	if(I2C_ADDR(GYRO_ADDRES, READ)) 
+		return 0xFF;
 
-    while (!(I2C1->SR1 & I2C_SR1_ADDR)) {
-        if (I2C1->SR1 & I2C_SR1_AF) {
-            I2C1->SR1 &= ~I2C_SR1_AF;
-            I2C1_Stop();
-            return 0xFF;
-        }
-    }
-    
-    (void)I2C1->SR1; 
-    (void)I2C1->SR2;  
-		//subaddres
-    I2C1->DR = 0x0F;
-    while (!(I2C1->SR1 & I2C_SR1_BTF));  
-    
-		//SR
-    I2C1_Start();
-		//addres + R
-    I2C1->DR = ADDR_READ(ACCELER_ADDRES); 
-    
-    while (!(I2C1->SR1 & I2C_SR1_ADDR)) {
-        if (I2C1->SR1 & I2C_SR1_AF) {
-            I2C1->SR1 &= ~I2C_SR1_AF;
-            I2C1_Stop();
-            return 0xFF;
-        }
-    }
-    (void)I2C1->SR1;
-    (void)I2C1->SR2;
-
-    data = I2C1_ReadByte(1);
-    
-    return data; 
+	data = I2C1_ReadByte(1);
+	
+	return data; 
 }
 
 void I2C1_ctrl_reg_gyro(void)
+/*
+ * @brief  setting the gyroscope parameters
+ * @param  None
+ * @retval None
+ */
 {
-    //start
-    I2C1_Start();
-    //addres + W
-    I2C1->DR = ADDR_WRITE(GYRO_ADDRES); 
-    
-
-    while (!(I2C1->SR1 & I2C_SR1_ADDR)) {
-        if (I2C1->SR1 & I2C_SR1_AF) {
-            I2C1->SR1 &= ~I2C_SR1_AF;
-            I2C1_Stop();
-        }
-    }
-    
-    (void)I2C1->SR1; 
-    (void)I2C1->SR2;  
-		//subaddres
-    I2C1->DR = 0x20;
-    while (!(I2C1->SR1 & I2C_SR1_BTF));  
-
-    I2C1_WriteByte(0xCF);
-		
-		I2C1_Stop();
+	//start
+	I2C1_Start();
+	//addres + W
+	I2C_ADDR(GYRO_ADDRES, WRITE);
+	//subaddres 
+	I2C1_WriteByte(0x20); 
+	//settings 
+	I2C1_WriteByte(0xCF);   // DR - 11(800Hz) , BW - 00, PD - 1(ON), ZEN - 1, YEN - 1, XEN - 1
+	//stop
+	I2C1_Stop();
     
 }
 
-void I3G4250D_ReadGyro(float *gx, float *gy, float *gz)
+void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz)
 {
-    uint8_t data[6];
-    
-    I2C1_Start();
-    I2C1->DR = 0xD0;  
-    while (!(I2C1->SR1 & I2C_SR1_ADDR)); 
-		(void)I2C1->SR1; (void)I2C1->SR2;
-    
-    I2C1->DR = (0x28 | 0x80);  
-    while (!(I2C1->SR1 & I2C_SR1_BTF));
-    
-   
-    I2C1_Start();
-    I2C1->DR = 0xD1;  
-    while (!(I2C1->SR1 & I2C_SR1_ADDR)); 
-		(void)I2C1->SR1; (void)I2C1->SR2;
-    
-   
-    for (int i = 0; i < 5; i++) {
-        data[i] = I2C1_ReadByte(0); 
-    }
-    data[5] = I2C1_ReadByte(1);     
-    
-    
-    *gx = (int16_t)(data[1] << 8 | data[0]);  // X: OUT_X_H << 8 | OUT_X_L
-    *gy = (int16_t)(data[3] << 8 | data[2]);  // Y: OUT_Y_H << 8 | OUT_Y_L
-    *gz = (int16_t)(data[5] << 8 | data[4]);  // Z: OUT_Z_H << 8 | OUT_Z_L
-		
-		*gx *= GYRO_250DPS_SCALE;
-		*gy *= GYRO_250DPS_SCALE;
-		*gz *= GYRO_250DPS_SCALE;
+	//temp buff
+	uint8_t data[6];
+	
+	//start
+	I2C1_Start();
+	//addres + W
+	I2C_ADDR(Address, WRITE);
+	//subaddres + autoincrement
+	I2C1_WriteByte(0x28 | 0x80);
+	//SR
+	I2C1_Start();
+	//addres + R
+	I2C_ADDR(Address, READ);
+	//read x, y, z (high and low reg)
+	for (int i = 0; i < 5; i++) {
+			data[i] = I2C1_ReadByte(0); 
+	}
+	data[5] = I2C1_ReadByte(1);     
+	
+	//generating values
+	*gx = (int16_t)(data[1] << 8 | data[0]);  // X: OUT_X_H << 8 | OUT_X_L
+	*gy = (int16_t)(data[3] << 8 | data[2]);  // Y: OUT_Y_H << 8 | OUT_Y_L
+	*gz = (int16_t)(data[5] << 8 | data[4]);  // Z: OUT_Z_H << 8 | OUT_Z_L
+
 }
 
-void TIM3_Init_1kHz(void)
+void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
+/*
+ * @brief  calibration to calculate bias value for each axis
+ * @param  bias
+ * @retval None
+ */
 {
-    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+	int16_t gx, gy, gz;
+	*bias_x = 0; *bias_y = 0; *bias_z = 0;
+	
+	for(uint8_t i = 0; i < 100; i++)
+	{
+		I2C1_ReadXYZ_Raw(GYRO_ADDRES, &gx, &gy, &gz);
+		*bias_x += gx;
+		*bias_y += gy;
+		*bias_z += gz;
+	}
+	*bias_x /= 100; *bias_y /= 100; *bias_z /= 100;
+}
 
-    TIM3->PSC = 84 - 1;
-    TIM3->ARR = 1250 - 1;
-    
-    TIM3->DIER |= TIM_DIER_UIE;  
-    TIM3->CR1 |= TIM_CR1_CEN;   
-    
-    NVIC_EnableIRQ(TIM3_IRQn);  
+void TIM3_Init_800Hz(void)
+/*
+ * @brief  initialization for TIM3, to read sensor data with freq = 800Hz
+ * @param  None
+ * @retval None
+ */
+{
+	
+	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+
+	TIM3->PSC = 84 - 1;
+	TIM3->ARR = 1250 - 1;  
+	
+	TIM3->DIER |= TIM_DIER_UIE;  
+	TIM3->CR1 |= TIM_CR1_CEN;   
+	
+	NVIC_EnableIRQ(TIM3_IRQn);  
 }
 
 
 void TIM3_IRQHandler(void)
 {
-    if (TIM3->SR & TIM_SR_UIF) {
-        TIM3->SR &= ~TIM_SR_UIF; 
-        sensor_ready = 1;         
-    }
+	if (TIM3->SR & TIM_SR_UIF) {
+			TIM3->SR &= ~TIM_SR_UIF; 
+			sensor_ready = 1;         
+	}
 }
 	
 	

@@ -2,8 +2,10 @@
 #define IMU_UTIL_
 	
 	//privat macros
-	#define ADDR_WRITE(addres) ((addres << 1) | 0)
-	#define ADDR_READ(addres) ((addres << 1) | 1)
+	#define WRITE 0U
+	#define READ 1U
+	#define ADDR_WRITE(addres) (((uint32_t)addres << 1U) | 0U)
+	#define ADDR_READ(addres) (((uint32_t)addres << 1U) | 1U)
 	
 	//privat defines
 	#define GYRO_ADDRES 0x68
@@ -17,12 +19,18 @@
 	extern volatile uint8_t sensor_ready;
 
 	//init func's
-	void TIM3_Init_1kHz(void);
+	void TIM3_Init_800Hz(void);
 	void GPIO_I2C_Init(void);
 	void I2C_init(void);
 
 	uint8_t ReadWhoAmI(void);
 	void I2C1_ctrl_reg_gyro(void);
-	void I3G4250D_ReadGyro(float *gx, float *gy, float *gz);
+	void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz);
+	void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z);
 
 #endif
+
+	
+//	*gx *= GYRO_250DPS_SCALE;
+//	*gy *= GYRO_250DPS_SCALE;
+//	*gz *= GYRO_250DPS_SCALE;
