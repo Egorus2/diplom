@@ -211,7 +211,7 @@ void I2C1_ctrl_reg_gyro(void)
     
 }
 
-void I3G4250D_ReadGyro(int16_t *gx, int16_t *gy, int16_t *gz)
+void I3G4250D_ReadGyro(float *gx, float *gy, float *gz)
 {
     uint8_t data[6];
     
@@ -239,14 +239,18 @@ void I3G4250D_ReadGyro(int16_t *gx, int16_t *gy, int16_t *gz)
     *gx = (int16_t)(data[1] << 8 | data[0]);  // X: OUT_X_H << 8 | OUT_X_L
     *gy = (int16_t)(data[3] << 8 | data[2]);  // Y: OUT_Y_H << 8 | OUT_Y_L
     *gz = (int16_t)(data[5] << 8 | data[4]);  // Z: OUT_Z_H << 8 | OUT_Z_L
+		
+		*gx *= GYRO_250DPS_SCALE;
+		*gy *= GYRO_250DPS_SCALE;
+		*gz *= GYRO_250DPS_SCALE;
 }
 
 void TIM3_Init_1kHz(void)
 {
     RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
-    TIM3->PSC = 83;
-    TIM3->ARR = 999;
+    TIM3->PSC = 84 - 1;
+    TIM3->ARR = 1250 - 1;
     
     TIM3->DIER |= TIM_DIER_UIE;  
     TIM3->CR1 |= TIM_CR1_CEN;   

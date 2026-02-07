@@ -1,12 +1,12 @@
 #include "stm32f4xx.h"                  // Device header
 #include "system_stm32f4xx.h"
+#include <stdio.h>
 
 #include "system.h" 
 #include "usart.h"
 #include "imu_util.h"
 
-#define TIMEOUT_USART 3UL
-#define MAX_LEN_RX 32UL
+
 
 
 int main(void)
@@ -19,15 +19,32 @@ int main(void)
 	DMA2_USART1_RX_TX_Init();
 	usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
 	
+	float gx, gy, gz;
+	uint8_t i = 0;
+	
 	//imu
-	TIM3_Init_1kHz();
 	GPIO_I2C_Init();
 	I2C_init();
-	
-	ReadWhoAmI();
+	I2C1_ctrl_reg_gyro();
+	TIM3_Init_1kHz();
 	
   while(1)
 	{
-		
+		if(sensor_ready)
+		{
+			sensor_ready = 0;
+			I3G4250D_ReadGyro(&gx, &gy, &gz);
+			i++;
+			if(i == 10)
+			{
+				i = 0;
+				char buf[32];
+//				usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
+//				snprintf(buf, sizeof(buf), "Gyro: X=%.3f Y=%.3f Z=%.3f\r\n", gx, gy, gz);
+				snprintf(buf, sizeof(buf), "%.3f %.3f %.3f\r\n", gx, gy, gz);
+				usart1_Transm_str(buf, TIMEOUT_USART);
+			}
+
+		}
 	}
 }
