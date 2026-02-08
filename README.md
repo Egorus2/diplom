@@ -10,3 +10,6 @@
 
 сырые значения гироскопа
 <img width="2955" height="1272" alt="image" src="https://github.com/user-attachments/assets/724a13da-8dba-4263-bf9b-9ac3443f9d05" />
+
+значения после добавления калибровки и альфа-фильтра(смещение ушло, размах колебаний уменьшился)
+<img width="1320" height="571" alt="image" src="https://github.com/user-attachments/assets/5000ea9e-8c8f-46e7-bc93-332c2ce6abb9" />
