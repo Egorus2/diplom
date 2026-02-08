@@ -2,6 +2,7 @@
 #include "system_stm32f4xx.h"
 
 #include "imu_util.h"
+#include "system.h"
 //local func's
 void TIM3_IRQHandler(void);
 void I2C1_Start(void);
@@ -9,6 +10,7 @@ void I2C1_Stop(void);
 uint8_t I2C1_WriteByte(uint8_t data);
 uint8_t I2C1_ReadByte(uint8_t nack);
 uint8_t I2C_ADDR(uint8_t Address, uint8_t write_read);
+void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz);
 
 //variables
 volatile uint8_t sensor_ready = 0;
@@ -224,6 +226,11 @@ void I2C1_ctrl_reg_gyro(void)
 }
 
 void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz)
+/*
+ * @brief  i2c1 read raw axis values
+ * @param  address of each axis variable
+ * @retval None
+ */
 {
 	//temp buff
 	uint8_t data[6];
@@ -251,6 +258,18 @@ void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz)
 
 }
 
+void gyro_struct_init(Gyro_t* gyro)
+/*
+ * @brief  initialization for struct Gyro_t
+ * @param  address to struct Gyro_t value
+ * @retval None
+ */
+{
+	gyro->bias_x = 0; gyro->bias_y = 0; gyro->bias_z = 0;
+	gyro->x_fil = 0.0f; gyro->y_fil = 0.0f; gyro->z_fil = 0.0f;
+	gyro->alpha = 0.8f;   // The alpha coefficient
+}
+
 void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
 /*
  * @brief  calibration to calculate bias value for each axis
@@ -259,16 +278,40 @@ void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
  */
 {
 	int16_t gx, gy, gz;
-	*bias_x = 0; *bias_y = 0; *bias_z = 0;
+	int64_t sum_x, sum_y, sum_z;
+	sum_x = 0; sum_y = 0; sum_z = 0;
 	
-	for(uint8_t i = 0; i < 100; i++)
+	for(uint16_t i = 0; i < 400; i++)
 	{
 		I2C1_ReadXYZ_Raw(GYRO_ADDRES, &gx, &gy, &gz);
-		*bias_x += gx;
-		*bias_y += gy;
-		*bias_z += gz;
+		sum_x += gx;
+		sum_y += gy;
+		sum_z += gz;
+		Delay_ms(1);
 	}
-	*bias_x /= 100; *bias_y /= 100; *bias_z /= 100;
+	*bias_x = (int16_t)(sum_x / 400); 
+	*bias_y = (int16_t)(sum_y / 400); 
+	*bias_z = (int16_t)(sum_z / 400);
+}
+
+void gyro_processed_values(Gyro_t* g)
+/*
+ * @brief  calculation of filtered values on each axis
+ * @param  address to struct Gyro_t value
+ * @retval None
+ */
+{
+	int16_t gx, gy, gz;
+	float x_dps, y_dps, z_dps;
+	I2C1_ReadXYZ_Raw(GYRO_ADDRES, &gx, &gy, &gz);
+	
+	gx -= g->bias_x; gy -= g->bias_y; gz -= g->bias_z;
+	
+	x_dps = gx * GYRO_250DPS_SCALE; y_dps = gy * GYRO_250DPS_SCALE; z_dps = gz * GYRO_250DPS_SCALE;
+	
+	g->x_fil = g->x_fil * g->alpha + (1.0f - g->alpha) * x_dps;
+	g->y_fil = g->y_fil * g->alpha + (1.0f - g->alpha) * y_dps;
+	g->z_fil = g->z_fil * g->alpha + (1.0f - g->alpha) * z_dps;
 }
 
 void TIM3_Init_800Hz(void)

@@ -15,6 +15,16 @@
 
 	//privat includes
 	#include <stdint.h>
+	
+	//struct
+	typedef struct{
+		float x_fil, y_fil, z_fil;
+		float alpha;
+		int16_t bias_x, bias_y, bias_z;
+		uint16_t plug;
+  }Gyro_t;
+  
+	
 	//ext variables 
 	extern volatile uint8_t sensor_ready;
 
@@ -22,11 +32,12 @@
 	void TIM3_Init_800Hz(void);
 	void GPIO_I2C_Init(void);
 	void I2C_init(void);
-
+	void gyro_struct_init(Gyro_t *gyro);
+	//operational functions
 	uint8_t ReadWhoAmI(void);
 	void I2C1_ctrl_reg_gyro(void);
-	void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz);
 	void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z);
+	void gyro_processed_values(Gyro_t* g);
 
 #endif
 
