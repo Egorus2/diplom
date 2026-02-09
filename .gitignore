@@ -1,51 +1,7 @@
-# ========================
-# Build artifacts
-# ========================
-*.o
-*.d
-*.elf
-*.bin
-*.hex
-*.axf
-*.lst
-*.map
-*.out
-*.a
-*.so
+DebugConfig/
+Listings/
+Objects/
 
-# ========================
-# IDE & Toolchain files
-# ========================
-# Keil
-*.uvprojx
-*.uvoptx
-*.uvguix.*
-JLinkLog.txt
-JLinkSettings.ini
-
-# STM32CubeIDE / Eclipse
-.cproject
-.project
-.settings/
-Debug/
-Release/
-*.launch
-
-# Makefile-based builds
-build/
-obj/
-*.mk
-
-# ========================
-# Temporary & OS files
-# ========================
-*~
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# ========================
-# Debugger & Flasher
-# ========================
-*.log
-openocd.cfg
+EventRecorderStub.scvd
+task1.uvguix.User
+task1.uvoptx
