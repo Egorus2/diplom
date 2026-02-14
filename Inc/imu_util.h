@@ -62,6 +62,7 @@
 	void I2C_init(void);
 	void gyro_struct_init(Gyro_t *gyro);
 	void I2C_DMA_init_forRead(void);
+	void imu_util_init(Gyro_t* gyro);
 	
 	//operational functions
 	uint8_t ReadWhoAmI(void);

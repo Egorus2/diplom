@@ -10,6 +10,7 @@
 	void GPIO_USART1_Init(void);
 	void USART1_Init(void);
 	void DMA2_USART1_RX_TX_Init(void);
+	void usart1_init(void);
 
 	//Trancmit
 	uint8_t usart1_Transm_byte(uint8_t mess, uint8_t Timout_ms);

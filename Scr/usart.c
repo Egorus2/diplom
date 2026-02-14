@@ -219,6 +219,20 @@ uint8_t usart1_Recive_str_blocking(char* buf, uint8_t max_len)
 		return i;
 }
 
+void usart1_init(void)
+/*
+ * @brief  all init func's
+ * @param  None
+ * @retval None
+ */
+{
+	//usart+dma init func's
+	GPIO_USART1_Init();
+	USART1_Init();
+	DMA2_USART1_RX_TX_Init();
+	usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
+}
+
 void USART1_IRQHandler(void)
 /*
  * @brief  usart1 inerrupt handler
@@ -248,5 +262,4 @@ void USART1_IRQHandler(void)
 		DMA2_Stream7->CR |= DMA_SxCR_EN;
 		DMA2_Stream5->CR |= DMA_SxCR_EN;
 	}
-	
 }

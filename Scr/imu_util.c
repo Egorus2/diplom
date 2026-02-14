@@ -387,6 +387,28 @@ void TIM3_Init_800Hz(void)
 	NVIC_EnableIRQ(TIM3_IRQn);  
 }
 
+void imu_util_init(Gyro_t* gyro)
+/*
+ * @brief  all init func's
+ * @param  struct gyro
+ * @retval None
+ */
+{
+	//imu init func's
+	GPIO_I2C_Init();
+	I2C_init();
+	I2C1_ctrl_reg_gyro();
+	
+	gyro_struct_init(gyro);
+	
+	//calibration
+	calibration_gyro(&gyro->bias_x, &gyro->bias_y, &gyro->bias_z);
+	
+	//setup for i2c+dma
+	I2C_DMA_init_forRead();
+	TIM3_Init_800Hz();
+}
+
 
 void TIM3_IRQHandler(void)
 {
@@ -443,10 +465,10 @@ void I2C1_EV_IRQHandler(void)
 		//state 5 - addr clear and dam en
 		case I2C_STATE_ADDR_CLEAR:
 			if(I2C1->SR1 & I2C_SR1_ADDR){
+				I2C1->CR1 |= I2C_CR1_ACK;
 				(void)I2C1->SR1; 
 				(void)I2C1->SR2;
 				
-				I2C1->CR1 |= I2C_CR1_ACK;
 				DMA1->LIFCR = DMA_LIFCR_CTCIF0;
 				i2c_sm.state++;
 				DMA1_Stream0->CR |= DMA_SxCR_EN;
@@ -469,26 +491,34 @@ void DMA1_Stream0_IRQHandler(void)
 		if(i2c_sm.state == I2C_STATE_DMA_RUN)
 		{
 			//6 byte recive
-			I2C1->CR1 |= I2C_CR1_STOP;
       I2C1->CR1 &= ~I2C_CR1_ACK;
+			I2C1->CR1 |= I2C_CR1_STOP;
+			//blocking :(
+			while (!(I2C1->SR1 & I2C_SR1_RXNE));
 			
 			i2c_buffer[5] = (uint8_t)(I2C1->DR);
 			
 			if (i2c_sm.curr_sensor == Gyro) 
 			{
 				//copy i2c_buffer to gyro_buffer(global) 
-				gyro_buffer[0] = i2c_buffer[0]; gyro_buffer[1] = i2c_buffer[1];
-				gyro_buffer[2] = i2c_buffer[2]; gyro_buffer[3] = i2c_buffer[3];
-				gyro_buffer[4] = i2c_buffer[4]; gyro_buffer[5] = i2c_buffer[5];
+				gyro_buffer[0] = i2c_buffer[0]; 
+				gyro_buffer[1] = i2c_buffer[1];
+				gyro_buffer[2] = i2c_buffer[2]; 
+				gyro_buffer[3] = i2c_buffer[3];
+				gyro_buffer[4] = i2c_buffer[4]; 
+				gyro_buffer[5] = i2c_buffer[5];
 				
 				gyro_ready = 1;
 			} 
 			else if (i2c_sm.curr_sensor == Accelerometer) 
 			{
 				//copy i2c_buffer to gyro_buffer(global) 
-				accel_buffer[0] = i2c_buffer[0]; accel_buffer[1] = i2c_buffer[1];
-				accel_buffer[2] = i2c_buffer[2]; accel_buffer[3] = i2c_buffer[3];
-				accel_buffer[4] = i2c_buffer[4]; accel_buffer[5] = i2c_buffer[5];
+				accel_buffer[0] = i2c_buffer[0]; 
+				accel_buffer[1] = i2c_buffer[1];
+				accel_buffer[2] = i2c_buffer[2]; 
+				accel_buffer[3] = i2c_buffer[3];
+				accel_buffer[4] = i2c_buffer[4]; 
+				accel_buffer[5] = i2c_buffer[5];
 				
 				accel_ready = 1;
 			}

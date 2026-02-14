@@ -18,25 +18,10 @@ int main(void)
 	//general init func's
 	RCC_Init();
 	sysTickInit();
-	//usart+dma init func's
-	GPIO_USART1_Init();
-	USART1_Init();
-	DMA2_USART1_RX_TX_Init();
-	usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
 	
-	//imu init func's
-	GPIO_I2C_Init();
-	I2C_init();
-	I2C1_ctrl_reg_gyro();
+	usart1_init();
 	
-	gyro_struct_init(&gyro);
-	
-	//calibration
-	calibration_gyro(&gyro.bias_x, &gyro.bias_y, &gyro.bias_z);
-	
-	//setup for i2c+dma
-	I2C_DMA_init_forRead();
-	TIM3_Init_800Hz();
+	imu_util_init(&gyro);
 
   while(1)
 	{
@@ -44,6 +29,7 @@ int main(void)
 		{
 			gyro_ready = 0;
 			gyro_processed_values(&gyro, gyro_buffer);
+
 			i++;
 			if(i == 5)
 			{
