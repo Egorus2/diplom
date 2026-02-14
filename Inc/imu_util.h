@@ -53,17 +53,21 @@
 	//ext variables 
 	extern volatile uint8_t gyro_ready;
 	extern volatile uint8_t accel_ready;
+	extern uint8_t gyro_buffer[MAX_LEN_I2C];
+	extern uint8_t accel_buffer[MAX_LEN_I2C];
+	
 	//init func's
 	void TIM3_Init_800Hz(void);
 	void GPIO_I2C_Init(void);
 	void I2C_init(void);
 	void gyro_struct_init(Gyro_t *gyro);
 	void I2C_DMA_init_forRead(void);
+	
 	//operational functions
 	uint8_t ReadWhoAmI(void);
 	void I2C1_ctrl_reg_gyro(void);
 	void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z);
-	void gyro_processed_values(Gyro_t* g);
+	void gyro_processed_values(Gyro_t* g, uint8_t* gyro_buf);
 
 #endif
 

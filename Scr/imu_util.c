@@ -21,8 +21,12 @@ void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz);
 volatile uint8_t gyro_ready = 0;
 volatile uint8_t accel_ready = 0;
 
-//variables
+//buffer
 static volatile uint8_t i2c_buffer[MAX_LEN_I2C] = {0};
+uint8_t gyro_buffer[MAX_LEN_I2C] = {0};
+uint8_t accel_buffer[MAX_LEN_I2C] = {0};
+
+//variables
 static volatile state_machine_t i2c_sm = {
 													.state = I2C_STATE_FREE,
 													.curr_sensor = Gyro};
@@ -342,7 +346,7 @@ void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
 	*bias_z = (int16_t)(sum_z / 400);
 }
 
-void gyro_processed_values(Gyro_t* g)
+void gyro_processed_values(Gyro_t* g, uint8_t* gyro_buf)
 /*
  * @brief  calculation of filtered values on each axis
  * @param  address to struct Gyro_t value
@@ -351,7 +355,9 @@ void gyro_processed_values(Gyro_t* g)
 {
 	int16_t gx, gy, gz;
 	float x_dps, y_dps, z_dps;
-	I2C1_ReadXYZ_Raw(GYRO_ADDRES, &gx, &gy, &gz);
+	gx = (int16_t)(gyro_buf[1] << 8 | gyro_buf[0]);
+	gy = (int16_t)(gyro_buf[3] << 8 | gyro_buf[2]);
+	gz = (int16_t)(gyro_buf[5] << 8 | gyro_buf[4]);
 	
 	gx -= g->bias_x; gy -= g->bias_y; gz -= g->bias_z;
 	
@@ -391,7 +397,6 @@ void TIM3_IRQHandler(void)
 		
 		//start
 		I2C1->CR1 |= I2C_CR1_START;
-		
 		//state - Start
 		i2c_sm.state++;
 	}
@@ -440,26 +445,30 @@ void I2C1_EV_IRQHandler(void)
 			if(I2C1->SR1 & I2C_SR1_ADDR){
 				(void)I2C1->SR1; 
 				(void)I2C1->SR2;
+				
 				I2C1->CR1 |= I2C_CR1_ACK;
 				DMA1->LIFCR = DMA_LIFCR_CTCIF0;
-				DMA1_Stream0->CR |= DMA_SxCR_EN;
 				i2c_sm.state++;
+				DMA1_Stream0->CR |= DMA_SxCR_EN;
+				
 			}
   		break;
-		
-  	default:
-  		break;
+		//unused state's
+		case I2C_STATE_FREE:
+		case I2C_STATE_DMA_RUN:	
+			break;
   }
 }
 
 void DMA1_Stream0_IRQHandler(void)
 {
-	if(DMA1->LIFCR & DMA_LIFCR_CTCIF0)
+	if(DMA1->LISR & DMA_LISR_TCIF0)
 	{
 		DMA1->LIFCR = DMA_LIFCR_CTCIF0;
 		
 		if(i2c_sm.state == I2C_STATE_DMA_RUN)
 		{
+			//6 byte recive
 			I2C1->CR1 |= I2C_CR1_STOP;
       I2C1->CR1 &= ~I2C_CR1_ACK;
 			
@@ -467,14 +476,37 @@ void DMA1_Stream0_IRQHandler(void)
 			
 			if (i2c_sm.curr_sensor == Gyro) 
 			{
-					gyro_ready = 1;
-			} else if (i2c_sm.curr_sensor == Accelerometer) {
-					accel_ready = 1;
+				//copy i2c_buffer to gyro_buffer(global) 
+				gyro_buffer[0] = i2c_buffer[0]; gyro_buffer[1] = i2c_buffer[1];
+				gyro_buffer[2] = i2c_buffer[2]; gyro_buffer[3] = i2c_buffer[3];
+				gyro_buffer[4] = i2c_buffer[4]; gyro_buffer[5] = i2c_buffer[5];
+				
+				gyro_ready = 1;
+			} 
+			else if (i2c_sm.curr_sensor == Accelerometer) 
+			{
+				//copy i2c_buffer to gyro_buffer(global) 
+				accel_buffer[0] = i2c_buffer[0]; accel_buffer[1] = i2c_buffer[1];
+				accel_buffer[2] = i2c_buffer[2]; accel_buffer[3] = i2c_buffer[3];
+				accel_buffer[4] = i2c_buffer[4]; accel_buffer[5] = i2c_buffer[5];
+				
+				accel_ready = 1;
 			}
 
 			//i2c_sm.curr_sensor = (i2c_sm.curr_sensor + 1) % SENSOR_COUNT;
+			
+			if(i2c_sm.curr_sensor != Gyro)
+			{
+				//start
+				I2C1->CR1 |= I2C_CR1_START;
+				//state - Start
+				i2c_sm.state = I2C_STATE_START;
+			}
+			else
+			{
+				i2c_sm.state = I2C_STATE_FREE;
+			}
             
-      i2c_sm.state = I2C_STATE_FREE;
 		}
 		
 	}

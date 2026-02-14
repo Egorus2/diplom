@@ -28,7 +28,7 @@ int main(void)
 	GPIO_I2C_Init();
 	I2C_init();
 	I2C1_ctrl_reg_gyro();
-	TIM3_Init_800Hz();
+	
 	gyro_struct_init(&gyro);
 	
 	//calibration
@@ -36,15 +36,16 @@ int main(void)
 	
 	//setup for i2c+dma
 	I2C_DMA_init_forRead();
+	TIM3_Init_800Hz();
 
   while(1)
 	{
 		if(gyro_ready)
 		{
 			gyro_ready = 0;
-			gyro_processed_values(&gyro);
+			gyro_processed_values(&gyro, gyro_buffer);
 			i++;
-			if(i == 10)
+			if(i == 5)
 			{
 				i = 0;
 				char buf[32];
