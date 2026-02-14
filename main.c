@@ -39,19 +39,19 @@ int main(void)
 
   while(1)
 	{
-//		if(sensor_ready)
-//		{
-//			sensor_ready = 0;
-//			gyro_processed_values(&gyro);
-//			i++;
-//			if(i == 10)
-//			{
-//				i = 0;
-//				char buf[32];
-//				snprintf(buf, sizeof(buf), "%.3f %.3f %.3f\r\n", gyro.x_fil, gyro.y_fil, gyro.z_fil);
-//				usart1_Transm_str(buf, TIMEOUT_USART);
-//			}
-//		}
+		if(gyro_ready)
+		{
+			gyro_ready = 0;
+			gyro_processed_values(&gyro);
+			i++;
+			if(i == 10)
+			{
+				i = 0;
+				char buf[32];
+				snprintf(buf, sizeof(buf), "%.3f %.3f %.3f\r\n", gyro.x_fil, gyro.y_fil, gyro.z_fil);
+				usart1_Transm_str(buf, TIMEOUT_USART);
+			}
+		}
 	}
 }
 

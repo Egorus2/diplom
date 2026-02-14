@@ -235,8 +235,7 @@ void USART1_IRQHandler(void)
 		DMA2_Stream5->CR &= ~DMA_SxCR_EN;
 		while(DMA2_Stream5->CR & DMA_SxCR_EN);
 		// length of current package
-		uint32_t ndtr = DMA2_Stream5->NDTR;
-		uint32_t len = MAX_LEN_RX - ndtr;	
+		uint32_t len = MAX_LEN_RX - DMA2_Stream5->NDTR;	
 		
 		//clear end of tx flag
 		DMA2->HIFCR |= DMA_HIFCR_CTCIF7;

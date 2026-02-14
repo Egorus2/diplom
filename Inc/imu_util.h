@@ -51,8 +51,8 @@
   
 	
 	//ext variables 
-	extern volatile uint8_t sensor_ready;
-
+	extern volatile uint8_t gyro_ready;
+	extern volatile uint8_t accel_ready;
 	//init func's
 	void TIM3_Init_800Hz(void);
 	void GPIO_I2C_Init(void);

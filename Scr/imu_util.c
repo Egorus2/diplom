@@ -3,9 +3,13 @@
 
 #include "imu_util.h"
 #include "system.h"
-//local func's
+
+//IRQ
 void TIM3_IRQHandler(void);
 void I2C1_EV_IRQHandler(void);
+void DMA1_Stream0_IRQHandler(void);
+
+//local func's
 void I2C1_Start(void);
 void I2C1_Stop(void);
 uint8_t I2C1_WriteByte(uint8_t data);
@@ -13,8 +17,11 @@ uint8_t I2C1_ReadByte(uint8_t nack);
 uint8_t I2C_ADDR(uint8_t Address, uint8_t write_read);
 void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz);
 
+//flags
+volatile uint8_t gyro_ready = 0;
+volatile uint8_t accel_ready = 0;
+
 //variables
-volatile uint8_t sensor_ready = 0;
 static volatile uint8_t i2c_buffer[MAX_LEN_I2C] = {0};
 static volatile state_machine_t i2c_sm = {
 													.state = I2C_STATE_FREE,
@@ -444,6 +451,36 @@ void I2C1_EV_IRQHandler(void)
   		break;
   }
 }
+
+void DMA1_Stream0_IRQHandler(void)
+{
+	if(DMA1->LIFCR & DMA_LIFCR_CTCIF0)
+	{
+		DMA1->LIFCR = DMA_LIFCR_CTCIF0;
+		
+		if(i2c_sm.state == I2C_STATE_DMA_RUN)
+		{
+			I2C1->CR1 |= I2C_CR1_STOP;
+      I2C1->CR1 &= ~I2C_CR1_ACK;
+			
+			i2c_buffer[5] = (uint8_t)(I2C1->DR);
+			
+			if (i2c_sm.curr_sensor == Gyro) 
+			{
+					gyro_ready = 1;
+			} else if (i2c_sm.curr_sensor == Accelerometer) {
+					accel_ready = 1;
+			}
+
+			//i2c_sm.curr_sensor = (i2c_sm.curr_sensor + 1) % SENSOR_COUNT;
+            
+      i2c_sm.state = I2C_STATE_FREE;
+		}
+		
+	}
+}
+
+
 
 
 	
