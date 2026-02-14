@@ -13,3 +13,7 @@
 
 значения после добавления калибровки и альфа-фильтра(смещение ушло, размах колебаний уменьшился)
 <img width="1320" height="571" alt="image" src="https://github.com/user-attachments/assets/5000ea9e-8c8f-46e7-bc93-332c2ce6abb9" />
+
+значения гироскопа, после изменения работы i2c(добавления прерываний и dma)
+<img width="2955" height="1272" alt="image" src="https://github.com/user-attachments/assets/343189ff-6e07-43c1-b45f-2b59380893b6" />
+
