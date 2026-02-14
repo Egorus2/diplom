@@ -5,6 +5,7 @@
 #include "system.h"
 //local func's
 void TIM3_IRQHandler(void);
+void I2C1_EV_IRQHandler(void);
 void I2C1_Start(void);
 void I2C1_Stop(void);
 uint8_t I2C1_WriteByte(uint8_t data);
@@ -14,6 +15,13 @@ void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz);
 
 //variables
 volatile uint8_t sensor_ready = 0;
+static volatile uint8_t i2c_buffer[MAX_LEN_I2C] = {0};
+static volatile state_machine_t i2c_sm = {
+													.state = I2C_STATE_FREE,
+													.curr_sensor = Gyro};
+static const volatile uint8_t sensor_addr[SENSOR_COUNT] = {
+															[Gyro] = GYRO_ADDRES,
+															[Accelerometer] = ACCELER_ADDRES};
 
 
 
@@ -80,6 +88,41 @@ void I2C_init(void)
 	I2C1->CR1 |= I2C_CR1_PE;
 	
 }
+
+void I2C_DMA_init_forRead(void)
+/*
+ * @brief  function to setup i2c+dma irq's
+ * @param  None
+ * @retval None
+ */
+{
+	//event irq
+	I2C1->CR2 |= I2C_CR2_ITEVTEN;
+	//dma request
+	I2C1->CR2 |= I2C_CR2_DMAEN;
+	
+	//DMA
+	RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
+		//RX//
+	// turn off dma stream to set up
+	DMA1_Stream0->CR &= ~DMA_SxCR_EN;
+	while(DMA1_Stream0->CR & DMA_SxCR_EN);
+	//source of data
+	DMA1_Stream0->PAR = (uint32_t)&(I2C1->DR);
+	//receiver of data
+	DMA1_Stream0->M0AR = (uint32_t)i2c_buffer;
+	//size of buffer
+	DMA1_Stream0->NDTR = (uint16_t)(MAX_LEN_I2C - 1);
+	//config for DMA // channel 4, memory increment, circular mode, per->mem
+	DMA1_Stream0->CR = (1UL << DMA_SxCR_CHSEL_Pos) | 
+											DMA_SxCR_MINC |
+											DMA_SxCR_TCIE;
+	
+	//NVIC enable
+	NVIC_EnableIRQ(I2C1_EV_IRQn);
+	NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+}
+
 
 void I2C1_Start(void)
 /*
@@ -222,7 +265,6 @@ void I2C1_ctrl_reg_gyro(void)
 	I2C1_WriteByte(0xCF);   // DR - 11(800Hz) , BW - 00, PD - 1(ON), ZEN - 1, YEN - 1, XEN - 1
 	//stop
 	I2C1_Stop();
-    
 }
 
 void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz)
@@ -255,7 +297,6 @@ void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz)
 	*gx = (int16_t)(data[1] << 8 | data[0]);  // X: OUT_X_H << 8 | OUT_X_L
 	*gy = (int16_t)(data[3] << 8 | data[2]);  // Y: OUT_Y_H << 8 | OUT_Y_L
 	*gz = (int16_t)(data[5] << 8 | data[4]);  // Z: OUT_Z_H << 8 | OUT_Z_L
-
 }
 
 void gyro_struct_init(Gyro_t* gyro)
@@ -337,10 +378,74 @@ void TIM3_Init_800Hz(void)
 void TIM3_IRQHandler(void)
 {
 	if (TIM3->SR & TIM_SR_UIF) {
-			TIM3->SR &= ~TIM_SR_UIF; 
-			sensor_ready = 1;         
+		TIM3->SR &= ~TIM_SR_UIF; 
+		
+		if(i2c_sm.state != I2C_STATE_FREE) return;
+		
+		//start
+		I2C1->CR1 |= I2C_CR1_START;
+		
+		//state - Start
+		i2c_sm.state++;
 	}
+
 }
+
+void I2C1_EV_IRQHandler(void)
+{
+	switch (i2c_sm.state)
+  {
+		//state 1 - waiting for SB and send sensor address(W)
+  	case I2C_STATE_START:
+			if(I2C1->SR1 & I2C_SR1_SB){
+				//get the desired address
+				uint8_t addr = sensor_addr[i2c_sm.curr_sensor];//address + W
+				I2C1->DR = ADDR_WRITE(addr); 
+				i2c_sm.state++;
+			}
+  		break;
+		//state 2 - clear addr flag and send subaddress
+		case I2C_STATE_ADDR_W:
+			if(I2C1->SR1 & I2C_SR1_ADDR){
+				(void)I2C1->SR1; 
+				(void)I2C1->SR2;
+				I2C1->DR = SENSOR_SUBADDR_REG | 0x80; // autoinc
+				i2c_sm.state++;
+			}
+  		break;
+		//state 3 - restart
+		case I2C_STATE_RESTART:
+			if(I2C1->SR1 & I2C_SR1_BTF){
+				 I2C1->CR1 |= I2C_CR1_START;
+			   i2c_sm.state++;
+			}
+  		break;
+		//state 4 - waiting for SB and send sensor address(R)
+		case I2C_STATE_ADDR_R:
+			if(I2C1->SR1 & I2C_SR1_SB){
+				uint8_t addr = sensor_addr[i2c_sm.curr_sensor];//address + R
+				I2C1->DR = ADDR_READ(addr); 
+				i2c_sm.state++;
+			}
+  		break;
+		//state 5 - addr clear and dam en
+		case I2C_STATE_ADDR_CLEAR:
+			if(I2C1->SR1 & I2C_SR1_ADDR){
+				(void)I2C1->SR1; 
+				(void)I2C1->SR2;
+				I2C1->CR1 |= I2C_CR1_ACK;
+				DMA1->LIFCR = DMA_LIFCR_CTCIF0;
+				DMA1_Stream0->CR |= DMA_SxCR_EN;
+				i2c_sm.state++;
+			}
+  		break;
+		
+  	default:
+  		break;
+  }
+}
+
+
 	
 	
 	

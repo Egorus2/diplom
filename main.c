@@ -33,22 +33,25 @@ int main(void)
 	
 	//calibration
 	calibration_gyro(&gyro.bias_x, &gyro.bias_y, &gyro.bias_z);
+	
+	//setup for i2c+dma
+	I2C_DMA_init_forRead();
 
   while(1)
 	{
-		if(sensor_ready)
-		{
-			sensor_ready = 0;
-			gyro_processed_values(&gyro);
-			i++;
-			if(i == 10)
-			{
-				i = 0;
-				char buf[32];
-				snprintf(buf, sizeof(buf), "%.3f %.3f %.3f\r\n", gyro.x_fil, gyro.y_fil, gyro.z_fil);
-				usart1_Transm_str(buf, TIMEOUT_USART);
-			}
-		}
+//		if(sensor_ready)
+//		{
+//			sensor_ready = 0;
+//			gyro_processed_values(&gyro);
+//			i++;
+//			if(i == 10)
+//			{
+//				i = 0;
+//				char buf[32];
+//				snprintf(buf, sizeof(buf), "%.3f %.3f %.3f\r\n", gyro.x_fil, gyro.y_fil, gyro.z_fil);
+//				usart1_Transm_str(buf, TIMEOUT_USART);
+//			}
+//		}
 	}
 }
 
