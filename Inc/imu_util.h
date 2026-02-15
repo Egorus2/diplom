@@ -16,6 +16,7 @@
 	#define MAGNET_ADDRES 0x1C
 	#define SENSOR_SUBADDR_REG 0x28
 	#define GYRO_250DPS_SCALE  0.00875f
+	#define ACCEL_2G_SCALE (1.0f / 16384.0f)
 	#define MAX_LEN_I2C 6U
 	#define SENSOR_COUNT 2U
 
@@ -48,8 +49,11 @@
 		int16_t bias_x, bias_y, bias_z;
 		uint16_t plug;
   }Gyro_t;
-  
 	
+	typedef struct{
+		float ax, ay, az;
+  }Accel_t;
+
 	//ext variables 
 	extern volatile uint8_t gyro_ready;
 	extern volatile uint8_t accel_ready;
@@ -62,13 +66,15 @@
 	void I2C_init(void);
 	void gyro_struct_init(Gyro_t *gyro);
 	void I2C_DMA_init_forRead(void);
+	void I2C1_ctrl_reg_gyro(void);
+	void I2C1_ctrl_reg_accel(void);
 	void imu_util_init(Gyro_t* gyro);
 	
 	//operational functions
 	uint8_t ReadWhoAmI(void);
-	void I2C1_ctrl_reg_gyro(void);
 	void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z);
 	void gyro_processed_values(Gyro_t* g, uint8_t* gyro_buf);
+	void accel_processed_values(Accel_t* a, uint8_t* accel_buf);
 
 #endif
 

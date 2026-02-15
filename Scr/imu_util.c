@@ -278,6 +278,25 @@ void I2C1_ctrl_reg_gyro(void)
 	I2C1_Stop();
 }
 
+void I2C1_ctrl_reg_accel(void)
+/*
+ * @brief  setting the accelerometer parameters
+ * @param  None
+ * @retval None
+ */
+{
+	//start
+	I2C1_Start();
+	//addres + W
+	I2C_ADDR(ACCELER_ADDRES, WRITE);
+	//subaddres 
+	I2C1_WriteByte(0x20); 
+	//settings 
+	I2C1_WriteByte(0x3F);   // PM - 001(normal mode) , DR - 11(1000 Hz), ZEN - 1, YEN - 1, XEN - 1
+	//stop
+	I2C1_Stop();
+}
+
 void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz)
 /*
  * @brief  i2c1 read raw axis values
@@ -368,6 +387,18 @@ void gyro_processed_values(Gyro_t* g, uint8_t* gyro_buf)
 	g->z_fil = g->z_fil * g->alpha + (1.0f - g->alpha) * z_dps;
 }
 
+void accel_processed_values(Accel_t* a, uint8_t* accel_buf)
+{
+	int16_t x, y, z;
+	x = (int16_t)(accel_buf[1] << 8 | accel_buf[0]);
+	y = (int16_t)(accel_buf[3] << 8 | accel_buf[2]);
+	z = (int16_t)(accel_buf[5] << 8 | accel_buf[4]);
+	
+	a->ax = x * ACCEL_2G_SCALE;
+	a->ay = y * ACCEL_2G_SCALE;
+	a->az = z * ACCEL_2G_SCALE;
+}
+
 void TIM3_Init_800Hz(void)
 /*
  * @brief  initialization for TIM3, to read sensor data with freq = 800Hz
@@ -398,6 +429,7 @@ void imu_util_init(Gyro_t* gyro)
 	GPIO_I2C_Init();
 	I2C_init();
 	I2C1_ctrl_reg_gyro();
+	I2C1_ctrl_reg_accel();
 	
 	gyro_struct_init(gyro);
 	
@@ -523,7 +555,7 @@ void DMA1_Stream0_IRQHandler(void)
 				accel_ready = 1;
 			}
 
-			//i2c_sm.curr_sensor = (i2c_sm.curr_sensor + 1) % SENSOR_COUNT;
+			i2c_sm.curr_sensor = (i2c_sm.curr_sensor + 1) % SENSOR_COUNT;
 			
 			if(i2c_sm.curr_sensor != Gyro)
 			{
