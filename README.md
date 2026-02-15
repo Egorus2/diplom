@@ -17,3 +17,5 @@
 значения гироскопа, после изменения работы i2c(добавления прерываний и dma)
 <img width="2955" height="1272" alt="image" src="https://github.com/user-attachments/assets/343189ff-6e07-43c1-b45f-2b59380893b6" />
 
+значения с акселерометра
+<img width="2955" height="1272" alt="image" src="https://github.com/user-attachments/assets/c7b94c34-bd81-4b4f-8139-9ac9e34b9c80" />
