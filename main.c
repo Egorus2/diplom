@@ -31,28 +31,28 @@ int main(void)
 			gyro_ready = 0;
 			gyro_processed_values(&gyro, gyro_buffer);
 
-//			i++;
-//			if(i == 5)
-//			{
-//				i = 0;
-//				char buf[32];
-//				snprintf(buf, sizeof(buf), "%.3f %.3f %.3f\r\n", gyro.x_fil, gyro.y_fil, gyro.z_fil);
-//				usart1_Transm_str(buf, TIMEOUT_USART);
-//			}
+			i++;
+			if(i == 5)
+			{
+				i = 0;
+				char buf[32];
+				snprintf(buf, sizeof(buf), "%.3f %.3f %.5f\r\n", gyro.x_fil, gyro.y_fil, gyro.z_fil);
+				usart1_Transm_str(buf, TIMEOUT_USART);
+			}
 		}
 		
 		if(accel_ready)
 		{
 			accel_ready = 0;
 			accel_processed_values(&accel, accel_buffer);
-			u++;
-			if(u == 5)
-			{
-				u = 0;
-				char buf1[32];
-				snprintf(buf1, sizeof(buf1), "%.3f %.3f %.3f\r\n", accel.ax, accel.ay, accel.az);
-				usart1_Transm_str(buf1, TIMEOUT_USART);
-			}	
+//			u++;
+//			if(u == 5)
+//			{
+//				u = 0;
+//				char buf1[32];
+//				snprintf(buf1, sizeof(buf1), "%.3f %.3f %.3f\r\n", accel.ax, accel.ay, accel.az);
+//				usart1_Transm_str(buf1, TIMEOUT_USART);
+//			}	
 		}
 	}
 	

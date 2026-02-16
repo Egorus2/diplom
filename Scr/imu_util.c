@@ -16,6 +16,7 @@ uint8_t I2C1_WriteByte(uint8_t data);
 uint8_t I2C1_ReadByte(uint8_t nack);
 uint8_t I2C_ADDR(uint8_t Address, uint8_t write_read);
 void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz);
+q31_t Q31_multiply(q31_t a, q31_t b);
 
 //flags
 volatile uint8_t gyro_ready = 0;
@@ -35,6 +36,18 @@ static const volatile uint8_t sensor_addr[SENSOR_COUNT] = {
 															[Accelerometer] = ACCELER_ADDRES};
 
 
+
+															
+q31_t Q31_multiply(q31_t x1, q31_t x2)
+/*
+ * @brief multiply x1 by x2
+ * @param multipliers
+ * @retval result of multiply
+ */
+{
+	int64_t res = ((int64_t)x1 * (int64_t)x2) >> 31;
+	return (q31_t)res;
+}
 
 void GPIO_I2C_Init(void)
 /*
@@ -338,7 +351,7 @@ void gyro_struct_init(Gyro_t* gyro)
 {
 	gyro->bias_x = 0; gyro->bias_y = 0; gyro->bias_z = 0;
 	gyro->x_fil = 0.0f; gyro->y_fil = 0.0f; gyro->z_fil = 0.0f;
-	gyro->alpha = 0.8f;   // The alpha coefficient
+	gyro->x_fil_q31 = 0; gyro->y_fil_q31 = 0; gyro->z_fil_q31 = 0; 
 }
 
 void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
@@ -373,18 +386,27 @@ void gyro_processed_values(Gyro_t* g, uint8_t* gyro_buf)
  */
 {
 	int16_t gx, gy, gz;
-	float x_dps, y_dps, z_dps;
+	q31_t x_dps, y_dps, z_dps;
 	gx = (int16_t)(gyro_buf[1] << 8 | gyro_buf[0]);
 	gy = (int16_t)(gyro_buf[3] << 8 | gyro_buf[2]);
 	gz = (int16_t)(gyro_buf[5] << 8 | gyro_buf[4]);
 	
 	gx -= g->bias_x; gy -= g->bias_y; gz -= g->bias_z;
 	
-	x_dps = gx * GYRO_250DPS_SCALE; y_dps = gy * GYRO_250DPS_SCALE; z_dps = gz * GYRO_250DPS_SCALE;
+	x_dps = (q31_t)((int64_t)gx * (int64_t)GYRO_250DPS_SCALE_Q31 >> 15);
+	y_dps = (q31_t)((int64_t)gy * (int64_t)GYRO_250DPS_SCALE_Q31 >> 15);
+	z_dps = (q31_t)((int64_t)gz * (int64_t)GYRO_250DPS_SCALE_Q31 >> 15);
 	
-	g->x_fil = g->x_fil * g->alpha + (1.0f - g->alpha) * x_dps;
-	g->y_fil = g->y_fil * g->alpha + (1.0f - g->alpha) * y_dps;
-	g->z_fil = g->z_fil * g->alpha + (1.0f - g->alpha) * z_dps;
+	g->x_fil_q31 = x_dps;
+	g->y_fil_q31 = y_dps;
+	g->z_fil_q31 = z_dps;
+//	g->x_fil_q31 = Q31_multiply(g->x_fil_q31, ALPHA_Q31) + Q31_multiply(x_dps, BETA_Q31);
+//	g->y_fil_q31 = Q31_multiply(g->y_fil_q31, ALPHA_Q31) + Q31_multiply(y_dps, BETA_Q31);
+//	g->z_fil_q31 = Q31_multiply(g->z_fil_q31, ALPHA_Q31) + Q31_multiply(z_dps, BETA_Q31);
+	
+	g->x_fil = FLOAT_FROM_Q31(g->x_fil_q31);
+	g->y_fil = FLOAT_FROM_Q31(g->y_fil_q31);
+	g->z_fil = FLOAT_FROM_Q31(g->z_fil_q31);
 }
 
 void accel_processed_values(Accel_t* a, uint8_t* accel_buf)

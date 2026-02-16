@@ -10,15 +10,26 @@
 	#define ADDR_WRITE(addres) (((uint32_t)addres << 1U) | 0U)
 	#define ADDR_READ(addres) (((uint32_t)addres << 1U) | 1U)
 	
+	//privat typedef
+	typedef int32_t q31_t;
+	
 	//privat defines
+	#define Q31_FROM_FLOAT(f) ((q31_t)(f * 2147483648.0f))
+	#define FLOAT_FROM_Q31(q) ((float)q / 2147483648.0f)
+	#define Q31_FROM_INT16(i) ((q31_t)(i << 16))
 	#define GYRO_ADDRES 0x68
 	#define ACCELER_ADDRES 0x18
 	#define MAGNET_ADDRES 0x1C
 	#define SENSOR_SUBADDR_REG 0x28
-	#define GYRO_250DPS_SCALE  0.00875f
+	#define GYRO_250DPS_SCALE 0.00875f
+	#define GYRO_250DPS_SCALE_Q31 Q31_FROM_FLOAT(GYRO_250DPS_SCALE)
 	#define ACCEL_2G_SCALE (1.0f / 16384.0f)
 	#define MAX_LEN_I2C 6U
 	#define SENSOR_COUNT 2U
+	#define ALPHA_C 0.8f
+	#define ALPHA_Q31 Q31_FROM_FLOAT(ALPHA_C)
+	#define BETA_Q31  Q31_FROM_FLOAT((1.0f - ALPHA_C))
+	
 
 	//enum
 	typedef enum{
@@ -45,9 +56,8 @@
 	
 	typedef struct{
 		float x_fil, y_fil, z_fil;
-		float alpha;
 		int16_t bias_x, bias_y, bias_z;
-		uint16_t plug;
+		q31_t x_fil_q31, y_fil_q31, z_fil_q31;
   }Gyro_t;
 	
 	typedef struct{
