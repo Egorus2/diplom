@@ -1,19 +1,19 @@
 #ifndef IMU_UTIL_
 #define IMU_UTIL_
 	
-	//privat includes
+	//includes
 	#include <stdint.h>
 	
-	//privat macros
+	//macros
 	#define WRITE 0U
 	#define READ 1U
 	#define ADDR_WRITE(addres) (((uint32_t)addres << 1U) | 0U)
 	#define ADDR_READ(addres) (((uint32_t)addres << 1U) | 1U)
 	
-	//privat typedef
+	//typedef
 	typedef int32_t q31_t;
 	
-	//privat defines
+	//defines
 	#define Q31_FROM_FLOAT(f) ((q31_t)(f * 2147483648.0f))
 	#define FLOAT_FROM_Q31(q) ((float)q / 2147483648.0f)
 	#define Q31_FROM_INT16(i) ((q31_t)(i << 16))

@@ -29,15 +29,12 @@ uint8_t accel_buffer[MAX_LEN_I2C] = {0};
 
 //variables
 static volatile state_machine_t i2c_sm = {
-													.state = I2C_STATE_FREE,
-													.curr_sensor = GYRO};
+                                            .state = I2C_STATE_FREE,
+                                            .curr_sensor = GYRO};
 static const volatile uint8_t sensor_addr[SENSOR_COUNT] = {
 															[GYRO] = GYRO_ADDRES,
-															[ACCELEROM] = ACCELER_ADDRES};
+															[ACCELEROM] = ACCELER_ADDRES};															
 
-
-
-															
 q31_t Q31_multiply(q31_t x1, q31_t x2)
 /*
  * @brief multiply x1 by x2
@@ -398,7 +395,7 @@ void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
 void sensor_processed_values(Sensor_data_t *st, uint8_t *buf, uint8_t curr_sens)
 /*
  * @brief  calculation of filtered values on each axis
- * @param  address to struct Sensor_data_t value
+ * @param  address to struct Sensor_data_t value, temp buf, current device
  * @retval None
  */
 {
@@ -443,7 +440,7 @@ void TIM3_Init_800Hz(void)
 void imu_util_init(Sensor_data_t *G, Sensor_data_t *A)
 /*
  * @brief  all init func's
- * @param  struct st
+ * @param  sensors structures
  * @retval None
  */
 {
@@ -452,7 +449,8 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A)
 	I2C_init();
 	I2C1_ctrl_reg_gyro();
 	I2C1_ctrl_reg_accel();
-	
+    
+    //struct's init
 	gyro_struct_init(G);
     accel_struct_init(A);
 	
