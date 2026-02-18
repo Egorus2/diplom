@@ -26,9 +26,6 @@
 	#define ACCEL_2G_SCALE (1.0f / 16384.0f)
 	#define MAX_LEN_I2C 6U
 	#define SENSOR_COUNT 2U
-	#define ALPHA_C 0.8f
-	#define ALPHA_Q31 Q31_FROM_FLOAT(ALPHA_C)
-	#define BETA_Q31  Q31_FROM_FLOAT((1.0f - ALPHA_C))
 	
 
 	//enum
@@ -43,11 +40,10 @@
 	} i2c_state_t;
 	
 	typedef enum{
-		Gyro,
-		Accelerometer
+		GYRO,
+		ACCELEROM
 	} sensor_t;
 		
-	
 	//struct
 	typedef struct{
 		i2c_state_t state;
@@ -58,11 +54,18 @@
 		float x_fil, y_fil, z_fil;
 		int16_t bias_x, bias_y, bias_z;
 		q31_t x_fil_q31, y_fil_q31, z_fil_q31;
+        float alpha;
+        q31_t alpha_q31, beta_q31;
   }Gyro_t;
-	
-	typedef struct{
-		float ax, ay, az;
-  }Accel_t;
+    
+    typedef struct{
+		float x_fil, y_fil, z_fil;
+		int16_t bias_x, bias_y, bias_z;
+        q31_t x_fil_q31, y_fil_q31, z_fil_q31;
+        float alpha;
+        q31_t alpha_q31, beta_q31;
+  }Sensor_data_t;
+
 
 	//ext variables 
 	extern volatile uint8_t gyro_ready;
@@ -74,17 +77,17 @@
 	void TIM3_Init_800Hz(void);
 	void GPIO_I2C_Init(void);
 	void I2C_init(void);
-	void gyro_struct_init(Gyro_t *gyro);
+	void gyro_struct_init(Sensor_data_t *gyro);
+    void accel_struct_init(Sensor_data_t *accel);
 	void I2C_DMA_init_forRead(void);
 	void I2C1_ctrl_reg_gyro(void);
 	void I2C1_ctrl_reg_accel(void);
-	void imu_util_init(Gyro_t* gyro);
+	void imu_util_init(Sensor_data_t *G, Sensor_data_t *A);
 	
 	//operational functions
 	uint8_t ReadWhoAmI(void);
 	void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z);
-	void gyro_processed_values(Gyro_t* g, uint8_t* gyro_buf);
-	void accel_processed_values(Accel_t* a, uint8_t* accel_buf);
+	void sensor_processed_values(Sensor_data_t *st, uint8_t *buf, uint8_t curr_sens);
 
 #endif
 

@@ -30,10 +30,10 @@ uint8_t accel_buffer[MAX_LEN_I2C] = {0};
 //variables
 static volatile state_machine_t i2c_sm = {
 													.state = I2C_STATE_FREE,
-													.curr_sensor = Gyro};
+													.curr_sensor = GYRO};
 static const volatile uint8_t sensor_addr[SENSOR_COUNT] = {
-															[Gyro] = GYRO_ADDRES,
-															[Accelerometer] = ACCELER_ADDRES};
+															[GYRO] = GYRO_ADDRES,
+															[ACCELEROM] = ACCELER_ADDRES};
 
 
 
@@ -342,16 +342,33 @@ void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz)
 	*gz = (int16_t)(data[5] << 8 | data[4]);  // Z: OUT_Z_H << 8 | OUT_Z_L
 }
 
-void gyro_struct_init(Gyro_t* gyro)
+void gyro_struct_init(Sensor_data_t *st)
 /*
- * @brief  initialization for struct Gyro_t
- * @param  address to struct Gyro_t value
+ * @brief  initialization for struct Sensor_data_t
+ * @param  address to struct Sensor_data_t value
  * @retval None
  */
 {
-	gyro->bias_x = 0; gyro->bias_y = 0; gyro->bias_z = 0;
-	gyro->x_fil = 0.0f; gyro->y_fil = 0.0f; gyro->z_fil = 0.0f;
-	gyro->x_fil_q31 = 0; gyro->y_fil_q31 = 0; gyro->z_fil_q31 = 0; 
+	st->bias_x = 0; st->bias_y = 0; st->bias_z = 0;
+	st->x_fil = 0.0f; st->y_fil = 0.0f; st->z_fil = 0.0f;
+	st->x_fil_q31 = 0; st->y_fil_q31 = 0; st->z_fil_q31 = 0; 
+    st->alpha = 0.8f;
+    st->alpha_q31 = Q31_FROM_FLOAT(st->alpha);
+    st->beta_q31 = Q31_FROM_FLOAT((1.0f - st->alpha));
+}
+
+void accel_struct_init(Sensor_data_t *accel)
+/*
+ * @brief  initialization for struct Sensor_data_t
+ * @param  address to struct Sensor_data_t value
+ * @retval None
+ */
+{
+	accel->x_fil = 0.0f; accel->y_fil = 0.0f; accel->z_fil = 0.0f;
+	accel->x_fil_q31 = 0; accel->y_fil_q31 = 0; accel->z_fil_q31 = 0; 
+    accel->alpha = 0.8f;
+    accel->alpha_q31 = Q31_FROM_FLOAT(accel->alpha);
+    accel->beta_q31 = Q31_FROM_FLOAT((1.0f - accel->alpha));
 }
 
 void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
@@ -378,47 +395,30 @@ void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
 	*bias_z = (int16_t)(sum_z / 400);
 }
 
-void gyro_processed_values(Gyro_t* g, uint8_t* gyro_buf)
+void sensor_processed_values(Sensor_data_t *st, uint8_t *buf, uint8_t curr_sens)
 /*
  * @brief  calculation of filtered values on each axis
- * @param  address to struct Gyro_t value
+ * @param  address to struct Sensor_data_t value
  * @retval None
  */
 {
-	int16_t gx, gy, gz;
-	q31_t x_dps, y_dps, z_dps;
-	gx = (int16_t)(gyro_buf[1] << 8 | gyro_buf[0]);
-	gy = (int16_t)(gyro_buf[3] << 8 | gyro_buf[2]);
-	gz = (int16_t)(gyro_buf[5] << 8 | gyro_buf[4]);
-	
-	gx -= g->bias_x; gy -= g->bias_y; gz -= g->bias_z;
-	
-	x_dps = (q31_t)((int64_t)gx * (int64_t)GYRO_250DPS_SCALE_Q31 >> 15);
-	y_dps = (q31_t)((int64_t)gy * (int64_t)GYRO_250DPS_SCALE_Q31 >> 15);
-	z_dps = (q31_t)((int64_t)gz * (int64_t)GYRO_250DPS_SCALE_Q31 >> 15);
-	
-	g->x_fil_q31 = x_dps;
-	g->y_fil_q31 = y_dps;
-	g->z_fil_q31 = z_dps;
-//	g->x_fil_q31 = Q31_multiply(g->x_fil_q31, ALPHA_Q31) + Q31_multiply(x_dps, BETA_Q31);
-//	g->y_fil_q31 = Q31_multiply(g->y_fil_q31, ALPHA_Q31) + Q31_multiply(y_dps, BETA_Q31);
-//	g->z_fil_q31 = Q31_multiply(g->z_fil_q31, ALPHA_Q31) + Q31_multiply(z_dps, BETA_Q31);
-	
-	g->x_fil = FLOAT_FROM_Q31(g->x_fil_q31);
-	g->y_fil = FLOAT_FROM_Q31(g->y_fil_q31);
-	g->z_fil = FLOAT_FROM_Q31(g->z_fil_q31);
-}
-
-void accel_processed_values(Accel_t* a, uint8_t* accel_buf)
-{
 	int16_t x, y, z;
-	x = (int16_t)(accel_buf[1] << 8 | accel_buf[0]);
-	y = (int16_t)(accel_buf[3] << 8 | accel_buf[2]);
-	z = (int16_t)(accel_buf[5] << 8 | accel_buf[4]);
+	x = (int16_t)(buf[1] << 8 | buf[0]);
+	y = (int16_t)(buf[3] << 8 | buf[2]);
+	z = (int16_t)(buf[5] << 8 | buf[4]);
+    
+	if(curr_sens == GYRO)
+    {
+        x -= st->bias_x; y -= st->bias_y; z -= st->bias_z;
+    }
 	
-	a->ax = x * ACCEL_2G_SCALE;
-	a->ay = y * ACCEL_2G_SCALE;
-	a->az = z * ACCEL_2G_SCALE;
+	st->x_fil_q31 = Q31_multiply(st->x_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(x), st->beta_q31);
+	st->y_fil_q31 = Q31_multiply(st->y_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(y), st->beta_q31);
+	st->z_fil_q31 = Q31_multiply(st->z_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(z), st->beta_q31);
+	
+	st->x_fil = FLOAT_FROM_Q31(st->x_fil_q31);
+	st->y_fil = FLOAT_FROM_Q31(st->y_fil_q31);
+	st->z_fil = FLOAT_FROM_Q31(st->z_fil_q31);
 }
 
 void TIM3_Init_800Hz(void)
@@ -432,7 +432,7 @@ void TIM3_Init_800Hz(void)
 	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
 	TIM3->PSC = 84 - 1;
-	TIM3->ARR = 1250 - 1;  
+	TIM3->ARR = 1250;  
 	
 	TIM3->DIER |= TIM_DIER_UIE;  
 	TIM3->CR1 |= TIM_CR1_CEN;   
@@ -440,10 +440,10 @@ void TIM3_Init_800Hz(void)
 	NVIC_EnableIRQ(TIM3_IRQn);  
 }
 
-void imu_util_init(Gyro_t* gyro)
+void imu_util_init(Sensor_data_t *G, Sensor_data_t *A)
 /*
  * @brief  all init func's
- * @param  struct gyro
+ * @param  struct st
  * @retval None
  */
 {
@@ -453,10 +453,11 @@ void imu_util_init(Gyro_t* gyro)
 	I2C1_ctrl_reg_gyro();
 	I2C1_ctrl_reg_accel();
 	
-	gyro_struct_init(gyro);
+	gyro_struct_init(G);
+    accel_struct_init(A);
 	
 	//calibration
-	calibration_gyro(&gyro->bias_x, &gyro->bias_y, &gyro->bias_z);
+	calibration_gyro(&G->bias_x, &G->bias_y, &G->bias_z);
 	
 	//setup for i2c+dma
 	I2C_DMA_init_forRead();
@@ -545,14 +546,14 @@ void DMA1_Stream0_IRQHandler(void)
 		if(i2c_sm.state == I2C_STATE_DMA_RUN)
 		{
 			//6 byte recive
-      I2C1->CR1 &= ~I2C_CR1_ACK;
+            I2C1->CR1 &= ~I2C_CR1_ACK;
 			I2C1->CR1 |= I2C_CR1_STOP;
 			//blocking :(
 			while (!(I2C1->SR1 & I2C_SR1_RXNE));
 			
 			i2c_buffer[5] = (uint8_t)(I2C1->DR);
 			
-			if (i2c_sm.curr_sensor == Gyro) 
+			if (i2c_sm.curr_sensor == GYRO) 
 			{
 				//copy i2c_buffer to gyro_buffer(global) 
 				gyro_buffer[0] = i2c_buffer[0]; 
@@ -564,7 +565,7 @@ void DMA1_Stream0_IRQHandler(void)
 				
 				gyro_ready = 1;
 			} 
-			else if (i2c_sm.curr_sensor == Accelerometer) 
+			else if (i2c_sm.curr_sensor == ACCELEROM) 
 			{
 				//copy i2c_buffer to gyro_buffer(global) 
 				accel_buffer[0] = i2c_buffer[0]; 
@@ -579,7 +580,7 @@ void DMA1_Stream0_IRQHandler(void)
 
 			i2c_sm.curr_sensor = (i2c_sm.curr_sensor + 1) % SENSOR_COUNT;
 			
-			if(i2c_sm.curr_sensor != Gyro)
+			if(i2c_sm.curr_sensor != GYRO)
 			{
 				//start
 				I2C1->CR1 |= I2C_CR1_START;

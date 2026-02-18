@@ -12,8 +12,8 @@
 int main(void)
 {
 	//local variables 
-	Gyro_t gyro;
-	Accel_t accel;
+	Sensor_data_t gyro;
+	Sensor_data_t accel;
 	uint8_t i = 0;
 	uint8_t u = 0;
 	//general init func's
@@ -22,14 +22,14 @@ int main(void)
 	
 	usart1_init();
 	
-	imu_util_init(&gyro);
+	imu_util_init(&gyro, &accel);
 
   while(1)
 	{
 		if(gyro_ready)
 		{
 			gyro_ready = 0;
-			gyro_processed_values(&gyro, gyro_buffer);
+			sensor_processed_values(&gyro, gyro_buffer, GYRO);
 
 			i++;
 			if(i == 5)
@@ -44,7 +44,7 @@ int main(void)
 		if(accel_ready)
 		{
 			accel_ready = 0;
-			accel_processed_values(&accel, accel_buffer);
+			sensor_processed_values(&accel, accel_buffer, ACCELEROM);
 //			u++;
 //			if(u == 5)
 //			{
