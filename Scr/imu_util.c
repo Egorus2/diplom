@@ -3,6 +3,7 @@
 
 #include "imu_util.h"
 #include "system.h"
+#include <math.h>
 
 //IRQ
 void TIM3_IRQHandler(void);
@@ -363,9 +364,21 @@ void accel_struct_init(Sensor_data_t *accel)
 {
 	accel->x_fil = 0.0f; accel->y_fil = 0.0f; accel->z_fil = 0.0f;
 	accel->x_fil_q31 = 0; accel->y_fil_q31 = 0; accel->z_fil_q31 = 0; 
-    accel->alpha = 0.8f;
+    accel->alpha = 0.95f;
     accel->alpha_q31 = Q31_FROM_FLOAT(accel->alpha);
     accel->beta_q31 = Q31_FROM_FLOAT((1.0f - accel->alpha));
+}
+
+void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update)
+/*
+ * @brief  initialization for struct compl_filter_t
+ * @param  address to struct compl_filter_t value
+ * @retval None
+ */
+{
+    C->pitch = 0.0f; C->roll = 0.0f;
+    C->alpha = 0.9f; C->beta = 1.0f - C->alpha;
+    C->dt = 0.00125f * samples_per_update;
 }
 
 void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
@@ -412,10 +425,7 @@ void sensor_processed_values(Sensor_data_t *st, uint8_t *buf, uint8_t curr_sens)
 	st->x_fil_q31 = Q31_multiply(st->x_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(x), st->beta_q31);
 	st->y_fil_q31 = Q31_multiply(st->y_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(y), st->beta_q31);
 	st->z_fil_q31 = Q31_multiply(st->z_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(z), st->beta_q31);
-	
-	st->x_fil = FLOAT_FROM_Q31(st->x_fil_q31);
-	st->y_fil = FLOAT_FROM_Q31(st->y_fil_q31);
-	st->z_fil = FLOAT_FROM_Q31(st->z_fil_q31);
+
 }
 
 void TIM3_Init_800Hz(void)
@@ -437,7 +447,7 @@ void TIM3_Init_800Hz(void)
 	NVIC_EnableIRQ(TIM3_IRQn);  
 }
 
-void imu_util_init(Sensor_data_t *G, Sensor_data_t *A)
+void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *C)
 /*
  * @brief  all init func's
  * @param  sensors structures
@@ -453,6 +463,7 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A)
     //struct's init
 	gyro_struct_init(G);
     accel_struct_init(A);
+    compl_filter_struct_init(C, SAMPLES_PER_UPDATE);
 	
 	//calibration
 	calibration_gyro(&G->bias_x, &G->bias_y, &G->bias_z);
@@ -460,6 +471,33 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A)
 	//setup for i2c+dma
 	I2C_DMA_init_forRead();
 	TIM3_Init_800Hz();
+}
+
+void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *Comp)
+
+{
+    // getting gyro data in dps
+    G->x_fil = FLOAT_FROM_Q31(G->x_fil_q31) * 250.0f;
+    G->y_fil = FLOAT_FROM_Q31(G->y_fil_q31) * 250.0f;
+    G->z_fil = FLOAT_FROM_Q31(G->z_fil_q31) * 250.0f;
+    
+    //gyro angle
+    float roll_gyro = Comp->roll + (G->x_fil * Comp->dt);
+    float pitch_gyro = Comp->pitch + (G->y_fil * Comp->dt);
+    
+    //accel value(g)
+    float acc_x = FLOAT_FROM_Q31(A->x_fil_q31);
+    float acc_y = FLOAT_FROM_Q31(A->y_fil_q31);
+    float acc_z = FLOAT_FROM_Q31(A->z_fil_q31);
+    
+    //accel angle
+    float roll_acc = atan2f(acc_y, acc_z) * RAD_TO_DEG_CONST;
+    float hypotenuse = sqrtf(acc_y * acc_y + acc_z * acc_z);
+    float pitch_acc = atan2f(-acc_x, hypotenuse) * RAD_TO_DEG_CONST;
+    
+    //complementary_filter
+    Comp->roll = roll_gyro * Comp->alpha + roll_acc * Comp->beta;
+    Comp->pitch = pitch_gyro * Comp->alpha + pitch_acc * Comp->beta;
 }
 
 
@@ -486,7 +524,7 @@ void I2C1_EV_IRQHandler(void)
   	case I2C_STATE_START:
 			if(I2C1->SR1 & I2C_SR1_SB){
 				//get the desired address
-				uint8_t addr = sensor_addr[i2c_sm.curr_sensor];//address + W
+				uint8_t addr = sensor_addr[i2c_sm.curr_sensor];   //address + W
 				I2C1->DR = ADDR_WRITE(addr); 
 				i2c_sm.state++;
 			}
@@ -575,7 +613,7 @@ void DMA1_Stream0_IRQHandler(void)
 				
 				accel_ready = 1;
 			}
-
+            
 			i2c_sm.curr_sensor = (i2c_sm.curr_sensor + 1) % SENSOR_COUNT;
 			
 			if(i2c_sm.curr_sensor != GYRO)

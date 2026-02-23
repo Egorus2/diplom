@@ -26,7 +26,8 @@
 	#define ACCEL_2G_SCALE (1.0f / 16384.0f)
 	#define MAX_LEN_I2C 6U
 	#define SENSOR_COUNT 2U
-	
+    #define RAD_TO_DEG_CONST (180.0f/3.141592f)
+    #define SAMPLES_PER_UPDATE 5U
 
 	//enum
 	typedef enum{
@@ -48,15 +49,8 @@
 	typedef struct{
 		i2c_state_t state;
 		sensor_t curr_sensor;
-  }state_machine_t;
+    } state_machine_t;
 	
-	typedef struct{
-		float x_fil, y_fil, z_fil;
-		int16_t bias_x, bias_y, bias_z;
-		q31_t x_fil_q31, y_fil_q31, z_fil_q31;
-        float alpha;
-        q31_t alpha_q31, beta_q31;
-  }Gyro_t;
     
     typedef struct{
 		float x_fil, y_fil, z_fil;
@@ -64,8 +58,14 @@
         q31_t x_fil_q31, y_fil_q31, z_fil_q31;
         float alpha;
         q31_t alpha_q31, beta_q31;
-  }Sensor_data_t;
-
+    } Sensor_data_t;
+    
+    typedef struct{
+        float roll, pitch;
+        float alpha, beta;
+        float dt;
+    } compl_filter_t;
+        
 
 	//ext variables 
 	extern volatile uint8_t gyro_ready;
@@ -79,10 +79,12 @@
 	void I2C_init(void);
 	void gyro_struct_init(Sensor_data_t *gyro);
     void accel_struct_init(Sensor_data_t *accel);
+    void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update);
 	void I2C_DMA_init_forRead(void);
 	void I2C1_ctrl_reg_gyro(void);
 	void I2C1_ctrl_reg_accel(void);
-	void imu_util_init(Sensor_data_t *G, Sensor_data_t *A);
+	void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *C);
+    void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *Comp);
 	
 	//operational functions
 	uint8_t ReadWhoAmI(void);
