@@ -42,9 +42,9 @@ int main(void)
 			{
 				u = 0;
                 complementary_filter(&gyro, &accel, &compl_filter);
-                usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
+                //usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
 				char buf1[32];
-				snprintf(buf1, sizeof(buf1), "roll %.3f pitch %.3f\r\n", compl_filter.roll, compl_filter.pitch);
+				snprintf(buf1, sizeof(buf1), "%.2f,%.2f\r\n", compl_filter.roll, compl_filter.pitch);
 				usart1_Transm_str(buf1, TIMEOUT_USART);
 			}	
 		}
