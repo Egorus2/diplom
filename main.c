@@ -46,6 +46,7 @@ int main(void)
 				char buf1[32];
 				snprintf(buf1, sizeof(buf1), "%.2f,%.2f\r\n", compl_filter.roll, compl_filter.pitch);
 				usart1_Transm_str(buf1, TIMEOUT_USART);
+                //test
 			}	
 		}
 	}
