@@ -533,7 +533,7 @@ void sensor_processed_values(Sensor_data_t *st, uint8_t *buf, uint8_t curr_sens)
 	y = (int16_t)(buf[3] << 8 | buf[2]);
 	z = (int16_t)(buf[5] << 8 | buf[4]);
     
-	if(curr_sens == GYRO)
+	if(curr_sens == GYRO || curr_sens == MAGNET)
     {
         x -= st->bias_x; y -= st->bias_y; z -= st->bias_z;
     }
