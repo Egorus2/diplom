@@ -25,7 +25,7 @@
 	#define GYRO_250DPS_SCALE_Q31 Q31_FROM_FLOAT(GYRO_250DPS_SCALE)
 	#define ACCEL_2G_SCALE (1.0f / 16384.0f)
 	#define MAX_LEN_I2C 6U
-	#define SENSOR_COUNT 2U
+	#define SENSOR_COUNT 3U
     #define RAD_TO_DEG_CONST (180.0f/3.141592f)
     #define SAMPLES_PER_UPDATE 10U
 
@@ -42,13 +42,15 @@
 	
 	typedef enum{
 		GYRO,
-		ACCELEROM
+		ACCELEROM,
+        MAGNET
 	} sensor_t;
 		
 	//struct
 	typedef struct{
 		i2c_state_t state;
 		sensor_t curr_sensor;
+        uint8_t magnet_cnt;
     } state_machine_t;
 	
     
@@ -70,8 +72,10 @@
 	//ext variables 
 	extern volatile uint8_t gyro_ready;
 	extern volatile uint8_t accel_ready;
+    extern volatile uint8_t magnet_ready;
 	extern uint8_t gyro_buffer[MAX_LEN_I2C];
 	extern uint8_t accel_buffer[MAX_LEN_I2C];
+    extern uint8_t magnet_buffer[MAX_LEN_I2C];
 	
 	//init func's
 	void TIM3_Init_800Hz(void);
@@ -79,11 +83,13 @@
 	void I2C_init(void);
 	void gyro_struct_init(Sensor_data_t *gyro);
     void accel_struct_init(Sensor_data_t *accel);
+    void magnet_struct_init(Sensor_data_t *magnet);
     void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update);
 	void I2C_DMA_init_forRead(void);
 	void I2C1_ctrl_reg_gyro(void);
 	void I2C1_ctrl_reg_accel(void);
-	void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *C);
+    void I2C1_ctrl_reg_magnet(void);
+	void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_filter_t *C);
     void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *Comp);
 	
 	//operational functions

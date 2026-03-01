@@ -14,6 +14,7 @@ int main(void)
 	//local variables 
     Sensor_data_t gyro;
 	Sensor_data_t accel;
+    Sensor_data_t magnet;
     compl_filter_t compl_filter;
 	uint8_t u = 0;
     
@@ -23,7 +24,7 @@ int main(void)
 	
 	usart1_init();
 	
-	imu_util_init(&gyro, &accel, &compl_filter);
+	imu_util_init(&gyro, &accel, &magnet, &compl_filter);
 
   while(1)
 	{
@@ -33,22 +34,38 @@ int main(void)
 			sensor_processed_values(&gyro, gyro_buffer, GYRO);
 		}
 		
-		if(accel_ready)
+		else if(accel_ready)
 		{
 			accel_ready = 0;
 			sensor_processed_values(&accel, accel_buffer, ACCELEROM);
+//			u++;
+//			if(u == SAMPLES_PER_UPDATE)
+//			{
+//				u = 0;
+//                complementary_filter(&gyro, &accel, &compl_filter);
+//                //usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
+//				char buf1[32];
+//				snprintf(buf1, sizeof(buf1), "%.2f,%.2f\r\n", compl_filter.roll, compl_filter.pitch);
+//				usart1_Transm_str(buf1, TIMEOUT_USART);
+//                
+//			}	
+		}
+        else if(magnet_ready)
+        {
+            magnet_ready = 0;
+            sensor_processed_values(&magnet, magnet_buffer, MAGNET);
 			u++;
 			if(u == SAMPLES_PER_UPDATE)
 			{
 				u = 0;
                 complementary_filter(&gyro, &accel, &compl_filter);
-                //usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
+                usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
 				char buf1[32];
-				snprintf(buf1, sizeof(buf1), "%.2f,%.2f\r\n", compl_filter.roll, compl_filter.pitch);
+				snprintf(buf1, sizeof(buf1), "%.2f,%.2f\r\n", FLOAT_FROM_Q31(magnet.x_fil_q31), FLOAT_FROM_Q31(magnet.y_fil_q31));
 				usart1_Transm_str(buf1, TIMEOUT_USART);
-                //test
-			}	
-		}
+                
+			}            
+        }
 	}
 	
 }

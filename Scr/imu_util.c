@@ -22,19 +22,24 @@ q31_t Q31_multiply(q31_t a, q31_t b);
 //flags
 volatile uint8_t gyro_ready = 0;
 volatile uint8_t accel_ready = 0;
+volatile uint8_t magnet_ready = 0;
 
 //buffer
 static volatile uint8_t i2c_buffer[MAX_LEN_I2C] = {0};
 uint8_t gyro_buffer[MAX_LEN_I2C] = {0};
 uint8_t accel_buffer[MAX_LEN_I2C] = {0};
+uint8_t magnet_buffer[MAX_LEN_I2C] = {0};
 
 //variables
 static volatile state_machine_t i2c_sm = {
                                             .state = I2C_STATE_FREE,
-                                            .curr_sensor = GYRO};
+                                            .curr_sensor = GYRO,
+                                            .magnet_cnt = 0  };
 static const volatile uint8_t sensor_addr[SENSOR_COUNT] = {
 															[GYRO] = GYRO_ADDRES,
-															[ACCELEROM] = ACCELER_ADDRES};															
+															[ACCELEROM] = ACCELER_ADDRES,
+                                                            [MAGNET] = MAGNET_ADDRES };
+
 
 q31_t Q31_multiply(q31_t x1, q31_t x2)
 /*
@@ -308,6 +313,25 @@ void I2C1_ctrl_reg_accel(void)
 	I2C1_Stop();
 }
 
+void I2C1_ctrl_reg_magnet(void)
+/*
+ * @brief  setting the magnetometr parameters
+ * @param  None
+ * @retval None
+ */
+{
+	//start
+	I2C1_Start();
+	//addres + W
+	I2C_ADDR(MAGNET_ADDRES, WRITE);
+	//subaddres 
+	I2C1_WriteByte(0x20); 
+	//settings 
+	I2C1_WriteByte(0x3C);   // Medium-performance mode,  80 Hz
+	//stop
+	I2C1_Stop();
+}
+
 void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz)
 /*
  * @brief  i2c1 read raw axis values
@@ -367,6 +391,20 @@ void accel_struct_init(Sensor_data_t *accel)
     accel->alpha = 0.95f;
     accel->alpha_q31 = Q31_FROM_FLOAT(accel->alpha);
     accel->beta_q31 = Q31_FROM_FLOAT((1.0f - accel->alpha));
+}
+
+void magnet_struct_init(Sensor_data_t *magnet)
+/*
+ * @brief  initialization for struct Sensor_data_t
+ * @param  address to struct Sensor_data_t value
+ * @retval None
+ */
+{
+	magnet->x_fil = 0.0f; magnet->y_fil = 0.0f; magnet->z_fil = 0.0f;
+	magnet->x_fil_q31 = 0; magnet->y_fil_q31 = 0; magnet->z_fil_q31 = 0; 
+    magnet->alpha = 0.95f;
+    magnet->alpha_q31 = Q31_FROM_FLOAT(magnet->alpha);
+    magnet->beta_q31 = Q31_FROM_FLOAT((1.0f - magnet->alpha));
 }
 
 void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update)
@@ -447,7 +485,7 @@ void TIM3_Init_800Hz(void)
 	NVIC_EnableIRQ(TIM3_IRQn);  
 }
 
-void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *C)
+void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_filter_t *C)
 /*
  * @brief  all init func's
  * @param  sensors structures
@@ -459,10 +497,12 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *C)
 	I2C_init();
 	I2C1_ctrl_reg_gyro();
 	I2C1_ctrl_reg_accel();
+    I2C1_ctrl_reg_magnet();
     
     //struct's init
 	gyro_struct_init(G);
     accel_struct_init(A);
+    magnet_struct_init(M);
     compl_filter_struct_init(C, SAMPLES_PER_UPDATE);
 	
 	//calibration
@@ -613,8 +653,30 @@ void DMA1_Stream0_IRQHandler(void)
 				
 				accel_ready = 1;
 			}
+            else if (i2c_sm.curr_sensor == MAGNET) 
+			{
+				//copy i2c_buffer to gyro_buffer(global) 
+				magnet_buffer[0] = i2c_buffer[0]; 
+				magnet_buffer[1] = i2c_buffer[1];
+				magnet_buffer[2] = i2c_buffer[2]; 
+				magnet_buffer[3] = i2c_buffer[3];
+				magnet_buffer[4] = i2c_buffer[4]; 
+				magnet_buffer[5] = i2c_buffer[5];
+				
+				magnet_ready = 1;
+			}
             
 			i2c_sm.curr_sensor = (i2c_sm.curr_sensor + 1) % SENSOR_COUNT;
+            
+            if(i2c_sm.curr_sensor == MAGNET)
+            {
+                i2c_sm.magnet_cnt++;
+                if(i2c_sm.magnet_cnt % 10 != 0)
+                {
+                    i2c_sm.curr_sensor = (i2c_sm.curr_sensor + 1) % SENSOR_COUNT;
+                }
+                
+            }
 			
 			if(i2c_sm.curr_sensor != GYRO)
 			{
