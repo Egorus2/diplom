@@ -76,6 +76,7 @@
 	extern uint8_t gyro_buffer[MAX_LEN_I2C];
 	extern uint8_t accel_buffer[MAX_LEN_I2C];
     extern uint8_t magnet_buffer[MAX_LEN_I2C];
+    
 	
 	//init func's
 	void TIM3_Init_800Hz(void);
@@ -94,7 +95,8 @@
 	
 	//operational functions
 	uint8_t ReadWhoAmI(void);
-	void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z);
+	void calibration_gyro(Sensor_data_t *G);
+    void calibration_magnet(Sensor_data_t *M);
 	void sensor_processed_values(Sensor_data_t *st, uint8_t *buf, uint8_t curr_sens);
 
 #endif

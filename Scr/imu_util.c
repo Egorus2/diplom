@@ -9,6 +9,7 @@
 void TIM3_IRQHandler(void);
 void I2C1_EV_IRQHandler(void);
 void DMA1_Stream0_IRQHandler(void);
+void EXTI0_IRQHandler(void);
 
 //local func's
 void I2C1_Start(void);
@@ -18,11 +19,13 @@ uint8_t I2C1_ReadByte(uint8_t nack);
 uint8_t I2C_ADDR(uint8_t Address, uint8_t write_read);
 void I2C1_ReadXYZ_Raw(uint8_t Address, int16_t *gx, int16_t *gy, int16_t *gz);
 q31_t Q31_multiply(q31_t a, q31_t b);
+void extiButtonInit(void);
 
 //flags
 volatile uint8_t gyro_ready = 0;
 volatile uint8_t accel_ready = 0;
 volatile uint8_t magnet_ready = 0;
+volatile uint8_t flag_b = 0;
 
 //buffer
 static volatile uint8_t i2c_buffer[MAX_LEN_I2C] = {0};
@@ -114,6 +117,33 @@ void I2C_init(void)
 	//en i2c
 	I2C1->CR1 |= I2C_CR1_PE;
 	
+}
+
+void extiButtonInit(void)
+/*
+ * @brief  button and led init func
+ * @param  None
+ * @retval None
+ */
+{
+    //PC13 - led
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+    GPIOC->MODER |= GPIO_MODER_MODER13_0;  // Output
+    GPIOC->BSRR = GPIO_BSRR_BS_13;
+    
+    //GPIOA en
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+    while(!(RCC->AHB1ENR & RCC_AHB1ENR_GPIOAEN));
+    
+	//syscfg clock enable
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	//PA0
+	SYSCFG->EXTICR[0] = SYSCFG_EXTICR1_EXTI0_PA;
+    EXTI->PR = EXTI_PR_PR0;
+	EXTI->IMR |= EXTI_IMR_IM0;
+	
+	EXTI->FTSR |= EXTI_FTSR_TR0;
+	NVIC_EnableIRQ(EXTI0_IRQn);
 }
 
 void I2C_DMA_init_forRead(void)
@@ -258,19 +288,20 @@ uint8_t ReadWhoAmI(void)
 	//start
 	I2C1_Start();
 	//addres + W
-	if(I2C_ADDR(GYRO_ADDRES, WRITE)) 
+	if(I2C_ADDR(MAGNET_ADDRES, WRITE)) 
 		return 0xFF;
 	//subaddres
 	I2C1->DR = 0x0F;
+
 	while (!(I2C1->SR1 & I2C_SR1_BTF));  
 	
 	//SR
 	I2C1_Start();
 	//addres + R
-	if(I2C_ADDR(GYRO_ADDRES, READ)) 
+	if(I2C_ADDR(MAGNET_ADDRES, READ)) 
 		return 0xFF;
 
-	data = I2C1_ReadByte(1);
+    data = I2C1_ReadByte(1);
 	
 	return data; 
 }
@@ -327,7 +358,18 @@ void I2C1_ctrl_reg_magnet(void)
 	//subaddres 
 	I2C1_WriteByte(0x20); 
 	//settings 
-	I2C1_WriteByte(0x3C);   // Medium-performance mode,  80 Hz
+	I2C1_WriteByte(0x1C);   // Low-power mode,  80 Hz
+	//stop
+	I2C1_Stop();
+    
+    //start
+	I2C1_Start();
+	//addres + W
+	I2C_ADDR(MAGNET_ADDRES, WRITE);
+	//subaddres 
+	I2C1_WriteByte(0x22); 
+	//settings 
+	I2C1_WriteByte(0x00);   // Low-power mode,  80 Hz
 	//stop
 	I2C1_Stop();
 }
@@ -400,6 +442,7 @@ void magnet_struct_init(Sensor_data_t *magnet)
  * @retval None
  */
 {
+    magnet->bias_x = -72; magnet->bias_y = -145; magnet->bias_z = 6;
 	magnet->x_fil = 0.0f; magnet->y_fil = 0.0f; magnet->z_fil = 0.0f;
 	magnet->x_fil_q31 = 0; magnet->y_fil_q31 = 0; magnet->z_fil_q31 = 0; 
     magnet->alpha = 0.95f;
@@ -419,7 +462,7 @@ void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update)
     C->dt = 0.00125f * samples_per_update;
 }
 
-void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
+void calibration_gyro(Sensor_data_t *G)
 /*
  * @brief  calibration to calculate bias value for each axis
  * @param  bias
@@ -438,10 +481,45 @@ void calibration_gyro(int16_t *bias_x, int16_t *bias_y, int16_t *bias_z)
 		sum_z += gz;
 		Delay_ms(1);
 	}
-	*bias_x = (int16_t)(sum_x / 400); 
-	*bias_y = (int16_t)(sum_y / 400); 
-	*bias_z = (int16_t)(sum_z / 400);
+	G->bias_x = (int16_t)(sum_x / 400); 
+	G->bias_y = (int16_t)(sum_y / 400); 
+	G->bias_z = (int16_t)(sum_z / 400);
 }
+
+void calibration_magnet(Sensor_data_t *M)
+/*
+ * @brief  calibration to calculate bias value for each axis
+ * @param  bias
+ * @retval None
+ */
+{
+	int16_t x, y, z;
+    
+	int16_t x_min = 32767;
+    int16_t y_min = 32767;
+	int16_t z_min = 32767;
+    
+    int16_t x_max = -32768;
+    int16_t y_max = -32768;
+	int16_t z_max = -32768;
+    
+	for(uint16_t i = 0; i < 8000; i++)
+	{
+		I2C1_ReadXYZ_Raw(MAGNET_ADDRES, &x, &y, &z);
+		if(x < x_min) x_min = x;
+        if(x > x_max) x_max = x;
+		if(y < y_min) y_min = y;
+        if(y > y_max) y_max = y;
+		if(z < z_min) z_min = z;
+        if(z > z_max) z_max = z;
+		Delay_ms(1);
+	}
+	M->bias_x = (int16_t)((x_min + x_max) / 2); 
+	M->bias_y = (int16_t)((y_min + y_max) / 2);  
+	M->bias_z = (int16_t)((z_min + z_max) / 2); 
+}
+
+
 
 void sensor_processed_values(Sensor_data_t *st, uint8_t *buf, uint8_t curr_sens)
 /*
@@ -463,7 +541,7 @@ void sensor_processed_values(Sensor_data_t *st, uint8_t *buf, uint8_t curr_sens)
 	st->x_fil_q31 = Q31_multiply(st->x_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(x), st->beta_q31);
 	st->y_fil_q31 = Q31_multiply(st->y_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(y), st->beta_q31);
 	st->z_fil_q31 = Q31_multiply(st->z_fil_q31, st->alpha_q31) + Q31_multiply(Q31_FROM_INT16(z), st->beta_q31);
-
+    
 }
 
 void TIM3_Init_800Hz(void)
@@ -498,6 +576,7 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_f
 	I2C1_ctrl_reg_gyro();
 	I2C1_ctrl_reg_accel();
     I2C1_ctrl_reg_magnet();
+    extiButtonInit();
     
     //struct's init
 	gyro_struct_init(G);
@@ -506,7 +585,15 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_f
     compl_filter_struct_init(C, SAMPLES_PER_UPDATE);
 	
 	//calibration
-	calibration_gyro(&G->bias_x, &G->bias_y, &G->bias_z);
+	calibration_gyro(G);
+    GPIOC->BSRR = GPIO_BSRR_BR_13;
+    Delay_ms(500);
+    GPIOC->BSRR = GPIO_BSRR_BS_13;
+    
+//    while(!flag_b) __NOP();
+//    GPIOC->BSRR = GPIO_BSRR_BR_13;
+//    calibration_magnet(M);
+//    GPIOC->BSRR = GPIO_BSRR_BS_13;
 	
 	//setup for i2c+dma
 	I2C_DMA_init_forRead();
@@ -695,7 +782,11 @@ void DMA1_Stream0_IRQHandler(void)
 	}
 }
 
-
+void EXTI0_IRQHandler(void)
+{
+	EXTI->PR = EXTI_PR_PR0;
+	flag_b = 1;
+}
 
 
 	

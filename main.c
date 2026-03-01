@@ -1,12 +1,11 @@
 #include "stm32f4xx.h"                  // Device header
 #include "system_stm32f4xx.h"
 #include <stdio.h>
+#include <math.h>
 
 #include "system.h" 
 #include "usart.h"
 #include "imu_util.h"
-
-
 
 
 int main(void)
@@ -59,9 +58,13 @@ int main(void)
 			{
 				u = 0;
                 complementary_filter(&gyro, &accel, &compl_filter);
+                float yaw_m = atan2f(FLOAT_FROM_Q31(magnet.x_fil_q31), FLOAT_FROM_Q31(magnet.y_fil_q31))* RAD_TO_DEG_CONST;
+                if(yaw_m < 0)
+                    yaw_m += 360;
                 usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
 				char buf1[32];
-				snprintf(buf1, sizeof(buf1), "%.2f,%.2f\r\n", FLOAT_FROM_Q31(magnet.x_fil_q31), FLOAT_FROM_Q31(magnet.y_fil_q31));
+				//snprintf(buf1, sizeof(buf1), "%d, %d, %d\r\n", magnet.bias_x, magnet.bias_y, magnet.bias_z);
+                snprintf(buf1, sizeof(buf1), "%.2f\r\n", yaw_m);
 				usart1_Transm_str(buf1, TIMEOUT_USART);
                 
 			}            
