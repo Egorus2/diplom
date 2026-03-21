@@ -442,7 +442,7 @@ void magnet_struct_init(Sensor_data_t *magnet)
  * @retval None
  */
 {
-    magnet->bias_x = -72; magnet->bias_y = -145; magnet->bias_z = 6;
+    magnet->bias_x = -3224; magnet->bias_y = 2799; magnet->bias_z = -2979;
 	magnet->x_fil = 0.0f; magnet->y_fil = 0.0f; magnet->z_fil = 0.0f;
 	magnet->x_fil_q31 = 0; magnet->y_fil_q31 = 0; magnet->z_fil_q31 = 0; 
     magnet->alpha = 0.95f;
@@ -450,16 +450,17 @@ void magnet_struct_init(Sensor_data_t *magnet)
     magnet->beta_q31 = Q31_FROM_FLOAT((1.0f - magnet->alpha));
 }
 
-void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update)
+void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update, float yaw_bias)
 /*
  * @brief  initialization for struct compl_filter_t
  * @param  address to struct compl_filter_t value
  * @retval None
  */
 {
-    C->pitch = 0.0f; C->roll = 0.0f;
+    C->pitch = 0.0f; C->roll = 0.0f; C->yaw = 0.0f; 
     C->alpha = 0.9f; C->beta = 1.0f - C->alpha;
     C->dt = 0.00125f * samples_per_update;
+    C->yaw_bias = yaw_bias;
 }
 
 void calibration_gyro(Sensor_data_t *G)
@@ -582,14 +583,14 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_f
 	gyro_struct_init(G);
     accel_struct_init(A);
     magnet_struct_init(M);
-    compl_filter_struct_init(C, SAMPLES_PER_UPDATE);
 	
 	//calibration
 	calibration_gyro(G);
-    GPIOC->BSRR = GPIO_BSRR_BR_13;
-    Delay_ms(500);
-    GPIOC->BSRR = GPIO_BSRR_BS_13;
     
+//    GPIOC->BSRR = GPIO_BSRR_BR_13;
+//    Delay_ms(400);
+//    GPIOC->BSRR = GPIO_BSRR_BS_13;
+//    
 //    while(!flag_b) __NOP();
 //    GPIOC->BSRR = GPIO_BSRR_BR_13;
 //    calibration_magnet(M);
@@ -598,9 +599,19 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_f
 	//setup for i2c+dma
 	I2C_DMA_init_forRead();
 	TIM3_Init_800Hz();
+    
+    while(!magnet_ready)  __NOP();
+    magnet_ready = 0;
+    sensor_processed_values(M, magnet_buffer, MAGNET);
+    
+    float yaw_m = atan2f(FLOAT_FROM_Q31(M->x_fil_q31), FLOAT_FROM_Q31(M->y_fil_q31))* RAD_TO_DEG_CONST;
+    if(yaw_m < 0)
+        yaw_m += 360; 
+    
+    compl_filter_struct_init(C, SAMPLES_PER_UPDATE, yaw_m);
 }
 
-void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *Comp)
+void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_filter_t *Comp)
 
 {
     // getting gyro data in dps
@@ -611,6 +622,7 @@ void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *Co
     //gyro angle
     float roll_gyro = Comp->roll + (G->x_fil * Comp->dt);
     float pitch_gyro = Comp->pitch + (G->y_fil * Comp->dt);
+    float yaw_gyro = Comp->yaw + (G->z_fil * Comp->dt);
     
     //accel value(g)
     float acc_x = FLOAT_FROM_Q31(A->x_fil_q31);
@@ -622,9 +634,26 @@ void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *Co
     float hypotenuse = sqrtf(acc_y * acc_y + acc_z * acc_z);
     float pitch_acc = atan2f(-acc_x, hypotenuse) * RAD_TO_DEG_CONST;
     
+    //magnet angle
+    float yaw_m = atan2f(FLOAT_FROM_Q31(M->x_fil_q31), FLOAT_FROM_Q31(M->y_fil_q31))* RAD_TO_DEG_CONST;
+    if(yaw_m < 0)
+        yaw_m += 360;
+
+    yaw_m -= Comp->yaw_bias;
+    if(yaw_m < 0)
+    {
+        yaw_m = 360 - yaw_m;
+    }
+    else if(yaw_m > 360)
+    {
+        yaw_m = yaw_m - 360;
+    }
+    
     //complementary_filter
     Comp->roll = roll_gyro * Comp->alpha + roll_acc * Comp->beta;
     Comp->pitch = pitch_gyro * Comp->alpha + pitch_acc * Comp->beta;
+    Comp->yaw =yaw_m;
+
 }
 
 

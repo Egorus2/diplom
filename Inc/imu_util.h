@@ -63,9 +63,10 @@
     } Sensor_data_t;
     
     typedef struct{
-        float roll, pitch;
+        float roll, pitch, yaw;
         float alpha, beta;
         float dt;
+        float yaw_bias;
     } compl_filter_t;
         
 
@@ -85,13 +86,13 @@
 	void gyro_struct_init(Sensor_data_t *gyro);
     void accel_struct_init(Sensor_data_t *accel);
     void magnet_struct_init(Sensor_data_t *magnet);
-    void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update);
+    void compl_filter_struct_init(compl_filter_t *C, uint8_t samples_per_update, float yaw_bias);
 	void I2C_DMA_init_forRead(void);
 	void I2C1_ctrl_reg_gyro(void);
 	void I2C1_ctrl_reg_accel(void);
     void I2C1_ctrl_reg_magnet(void);
 	void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_filter_t *C);
-    void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, compl_filter_t *Comp);
+    void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_filter_t *Comp);
 	
 	//operational functions
 	uint8_t ReadWhoAmI(void);

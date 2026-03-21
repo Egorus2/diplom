@@ -37,17 +37,7 @@ int main(void)
 		{
 			accel_ready = 0;
 			sensor_processed_values(&accel, accel_buffer, ACCELEROM);
-//			u++;
-//			if(u == SAMPLES_PER_UPDATE)
-//			{
-//				u = 0;
-//                complementary_filter(&gyro, &accel, &compl_filter);
-//                //usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
-//				char buf1[32];
-//				snprintf(buf1, sizeof(buf1), "%.2f,%.2f\r\n", compl_filter.roll, compl_filter.pitch);
-//				usart1_Transm_str(buf1, TIMEOUT_USART);
-//                
-//			}	
+
 		}
         else if(magnet_ready)
         {
@@ -57,14 +47,12 @@ int main(void)
 			if(u == SAMPLES_PER_UPDATE)
 			{
 				u = 0;
-                complementary_filter(&gyro, &accel, &compl_filter);
-                float yaw_m = atan2f(FLOAT_FROM_Q31(magnet.x_fil_q31), FLOAT_FROM_Q31(magnet.y_fil_q31))* RAD_TO_DEG_CONST;
-                if(yaw_m < 0)
-                    yaw_m += 360;
-                usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
+                complementary_filter(&gyro, &accel, &magnet, &compl_filter);
+
+                //usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
 				char buf1[32];
-				//snprintf(buf1, sizeof(buf1), "%d, %d, %d\r\n", magnet.bias_x, magnet.bias_y, magnet.bias_z);
-                snprintf(buf1, sizeof(buf1), "%.2f\r\n", yaw_m);
+				snprintf(buf1, sizeof(buf1), "%.2f,%.2f,%.2f\r\n", compl_filter.roll, compl_filter.pitch, compl_filter.yaw);
+                //snprintf(buf1, sizeof(buf1), "%.2f\r\n", yaw_m);
 				usart1_Transm_str(buf1, TIMEOUT_USART);
                 
 			}            
