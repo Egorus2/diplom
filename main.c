@@ -47,11 +47,11 @@ int main(void)
 			if(u == SAMPLES_PER_UPDATE)
 			{
 				u = 0;
-                complementary_filter(&gyro, &accel, &magnet, &compl_filter);
+                //complementary_filter(&gyro, &accel, &magnet, &compl_filter);
 
                 //usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
 				char buf1[32];
-				snprintf(buf1, sizeof(buf1), "%.2f,%.2f,%.2f\r\n", compl_filter.roll, compl_filter.pitch, compl_filter.yaw);
+				snprintf(buf1, sizeof(buf1), "%.4f, %.4f, %.4f\r\n", FLOAT_FROM_Q31(magnet.x_fil_q31), FLOAT_FROM_Q31(magnet.y_fil_q31), FLOAT_FROM_Q31(magnet.z_fil_q31));
                 //snprintf(buf1, sizeof(buf1), "%.2f\r\n", yaw_m);
 				usart1_Transm_str(buf1, TIMEOUT_USART);
                 
