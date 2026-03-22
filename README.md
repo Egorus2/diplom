@@ -13,3 +13,6 @@
 
 значения после добавления калибровки и альфа-фильтра(смещение ушло, размах колебаний уменьшился)
 <img width="1320" height="571" alt="image" src="https://github.com/user-attachments/assets/5000ea9e-8c8f-46e7-bc93-332c2ce6abb9" />
+
+сырые данные магнитометра
+<img width="875" height="919" alt="image" src="https://github.com/user-attachments/assets/b85b79a7-7934-419f-92d3-c67254e54889" />
