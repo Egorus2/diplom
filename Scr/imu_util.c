@@ -442,7 +442,7 @@ void magnet_struct_init(Sensor_data_t *magnet)
  * @retval None
  */
 {
-    magnet->bias_x = -3224; magnet->bias_y = 2799; magnet->bias_z = -2979;
+    magnet->bias_x = -2980; magnet->bias_y = 3062; magnet->bias_z = 142;
 	magnet->x_fil = 0.0f; magnet->y_fil = 0.0f; magnet->z_fil = 0.0f;
 	magnet->x_fil_q31 = 0; magnet->y_fil_q31 = 0; magnet->z_fil_q31 = 0; 
     magnet->alpha = 0.95f;
@@ -622,7 +622,7 @@ void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, 
     //gyro angle
     float roll_gyro = Comp->roll + (G->x_fil * Comp->dt);
     float pitch_gyro = Comp->pitch + (G->y_fil * Comp->dt);
-    //float yaw_gyro = Comp->yaw + (G->z_fil * Comp->dt);
+    float yaw_gyro = Comp->yaw + (G->z_fil * Comp->dt);
     
     //accel value(g)
     float acc_x = FLOAT_FROM_Q31(A->x_fil_q31);
@@ -653,6 +653,7 @@ void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, 
     Comp->roll = roll_gyro * Comp->alpha + roll_acc * Comp->beta;
     Comp->pitch = pitch_gyro * Comp->alpha + pitch_acc * Comp->beta;
     Comp->yaw = yaw_m;
+
 
 }
 
