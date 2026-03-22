@@ -622,7 +622,7 @@ void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, 
     //gyro angle
     float roll_gyro = Comp->roll + (G->x_fil * Comp->dt);
     float pitch_gyro = Comp->pitch + (G->y_fil * Comp->dt);
-    float yaw_gyro = Comp->yaw + (G->z_fil * Comp->dt);
+    //float yaw_gyro = Comp->yaw + (G->z_fil * Comp->dt);
     
     //accel value(g)
     float acc_x = FLOAT_FROM_Q31(A->x_fil_q31);
@@ -652,7 +652,7 @@ void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, 
     //complementary_filter
     Comp->roll = roll_gyro * Comp->alpha + roll_acc * Comp->beta;
     Comp->pitch = pitch_gyro * Comp->alpha + pitch_acc * Comp->beta;
-    Comp->yaw =yaw_m;
+    Comp->yaw = yaw_m;
 
 }
 
