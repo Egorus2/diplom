@@ -643,7 +643,7 @@ void complementary_filter(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, 
     yaw_m -= Comp->yaw_bias;
     if(yaw_m < 0)
     {
-        yaw_m = 360 - yaw_m;
+        yaw_m = 360 + yaw_m;
     }
     else if(yaw_m > 360)
     {
