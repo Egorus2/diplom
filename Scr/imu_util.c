@@ -416,7 +416,7 @@ void gyro_struct_init(Sensor_data_t *st)
 	st->bias_x = 0; st->bias_y = 0; st->bias_z = 0;
 	st->x_fil = 0.0f; st->y_fil = 0.0f; st->z_fil = 0.0f;
 	st->x_fil_q31 = 0; st->y_fil_q31 = 0; st->z_fil_q31 = 0; 
-    st->alpha = 0.8f;
+    st->alpha = 0.9f;
     st->alpha_q31 = Q31_FROM_FLOAT(st->alpha);
     st->beta_q31 = Q31_FROM_FLOAT((1.0f - st->alpha));
 }
@@ -446,7 +446,7 @@ void magnet_struct_init(Sensor_data_t *magnet)
     magnet->bias_x = -2980; magnet->bias_y = 3062; magnet->bias_z = 142;
 	magnet->x_fil = 0.0f; magnet->y_fil = 0.0f; magnet->z_fil = 0.0f;
 	magnet->x_fil_q31 = 0; magnet->y_fil_q31 = 0; magnet->z_fil_q31 = 0; 
-    magnet->alpha = 0.95f;
+    magnet->alpha = 0.98f;
     magnet->alpha_q31 = Q31_FROM_FLOAT(magnet->alpha);
     magnet->beta_q31 = Q31_FROM_FLOAT((1.0f - magnet->alpha));
 }
@@ -608,6 +608,7 @@ void imu_util_init(Sensor_data_t *G, Sensor_data_t *A, Sensor_data_t *M, compl_f
     float yaw_m = atan2f(FLOAT_FROM_Q31(M->x_fil_q31), FLOAT_FROM_Q31(M->y_fil_q31))* RAD_TO_DEG_CONST;
     if(yaw_m < 0)
         yaw_m += 360; 
+    
     
     compl_filter_struct_init(C, SAMPLES_PER_UPDATE, yaw_m);
 }

@@ -27,7 +27,8 @@
 	#define MAX_LEN_I2C 6U
 	#define SENSOR_COUNT 3U
     #define RAD_TO_DEG_CONST (180.0f/3.141592f)
-    #define SAMPLES_PER_UPDATE 10U
+    #define DEG_TO_RAD_CONST (3.141592f/180.0f)
+    #define SAMPLES_PER_UPDATE 5U
 
 	//enum
 	typedef enum{

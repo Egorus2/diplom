@@ -403,6 +403,11 @@
               <FileType>1</FileType>
               <FilePath>.\Scr\imu_util.c</FilePath>
             </File>
+            <File>
+              <FileName>MadgwickAHRS.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Scr\MadgwickAHRS.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -422,6 +427,11 @@
               <FileName>imu_util.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Inc\imu_util.h</FilePath>
+            </File>
+            <File>
+              <FileName>MadgwickAHRS.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Inc\MadgwickAHRS.h</FilePath>
             </File>
           </Files>
         </Group>
