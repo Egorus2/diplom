@@ -26,11 +26,11 @@ int main(void)
 	
 	imu_util_init(&gyro, &accel, &magnet, &compl_filter);
     
-//    float half_yaw = (compl_filter.yaw_bias * DEG_TO_RAD_CONST) / 2.0f;
-//    q0 = cosf(half_yaw);
-//    q1 = 0.0f;
-//    q2 = 0.0f;
-//    q3 = sinf(half_yaw);
+    float half_yaw = (compl_filter.yaw_bias * DEG_TO_RAD_CONST) / 2.0f;
+    q0 = cosf(half_yaw);
+    q1 = 0.0f;
+    q2 = 0.0f;
+    q3 = sinf(half_yaw);
 
   while(1)
 	{
@@ -44,14 +44,6 @@ int main(void)
 		{
 			accel_ready = 0;
 			sensor_processed_values(&accel, accel_buffer, ACCELEROM);
-
-		}
-        else if(magnet_ready)
-        {
-            magnet_ready = 0;
-            sensor_processed_values(&magnet, magnet_buffer, MAGNET);
-			u++;
-            
             MadgwickAHRSupdate(FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f * 0.0174532925f,
                                FLOAT_FROM_Q31(gyro.y_fil_q31) * 250.0f * 0.0174532925f,
                                FLOAT_FROM_Q31(gyro.z_fil_q31) * 250.0f * 0.0174532925f,
@@ -62,6 +54,14 @@ int main(void)
                                FLOAT_FROM_Q31(magnet.y_fil_q31), 
                                FLOAT_FROM_Q31(magnet.z_fil_q31)
                                );
+		}
+        else if(magnet_ready)
+        {
+            magnet_ready = 0;
+            sensor_processed_values(&magnet, magnet_buffer, MAGNET);
+			u++;
+            
+
             
 			if(u == SAMPLES_PER_UPDATE)
 			{
