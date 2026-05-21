@@ -404,9 +404,9 @@
               <FilePath>.\Scr\imu_util.c</FilePath>
             </File>
             <File>
-              <FileName>MadgwickAHRS.c</FileName>
+              <FileName>MahonyAHRS.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Scr\MadgwickAHRS.c</FilePath>
+              <FilePath>.\Scr\MahonyAHRS.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -429,9 +429,9 @@
               <FilePath>.\Inc\imu_util.h</FilePath>
             </File>
             <File>
-              <FileName>MadgwickAHRS.h</FileName>
+              <FileName>MahonyAHRS.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Inc\MadgwickAHRS.h</FilePath>
+              <FilePath>.\Inc\MahonyAHRS.h</FilePath>
             </File>
           </Files>
         </Group>

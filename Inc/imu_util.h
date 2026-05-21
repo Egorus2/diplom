@@ -28,7 +28,7 @@
 	#define SENSOR_COUNT 3U
     #define RAD_TO_DEG_CONST (180.0f/3.141592f)
     #define DEG_TO_RAD_CONST (3.141592f/180.0f)
-    #define SAMPLES_PER_UPDATE 5U
+    #define SAMPLES_PER_UPDATE 10U
 
 	//enum
 	typedef enum{

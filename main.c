@@ -6,7 +6,7 @@
 #include "system.h" 
 #include "usart.h"
 #include "imu_util.h"
-#include "MadgwickAHRS.h"
+#include "MahonyAHRS.h"
 
 
 int main(void)
@@ -44,7 +44,7 @@ int main(void)
 		{
 			accel_ready = 0;
 			sensor_processed_values(&accel, accel_buffer, ACCELEROM);
-            MadgwickAHRSupdate(FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f * 0.0174532925f,
+            MahonyAHRSupdate(FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f * 0.0174532925f,
                                FLOAT_FROM_Q31(gyro.y_fil_q31) * 250.0f * 0.0174532925f,
                                FLOAT_FROM_Q31(gyro.z_fil_q31) * 250.0f * 0.0174532925f,
                                FLOAT_FROM_Q31(accel.x_fil_q31), 
