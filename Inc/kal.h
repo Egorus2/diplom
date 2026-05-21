@@ -10,19 +10,19 @@
 // 02/10/2011	SOH Madgwick	Optimised for reduced CPU load
 //
 //=====================================================================================================
-#ifndef MadgwickAHRS_h
-#define MadgwickAHRS_h
+#ifndef HRS_h
+#define HRS_h
 
 //----------------------------------------------------------------------------------------------------
 // Variable declaration
-
-extern volatile float pq0, pq1, pq2, pq3;	// quaternion of sensor frame relative to auxiliary frame
+			// algorithm gain
+extern volatile float kq0, kq1, kq2, kq3;	// quaternion of sensor frame relative to auxiliary frame
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
 
-void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
-void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az);
+void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
+void AHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az);
 
 #endif
 //=====================================================================================================
