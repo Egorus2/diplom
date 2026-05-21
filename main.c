@@ -44,16 +44,22 @@ int main(void)
 		{
 			accel_ready = 0;
 			sensor_processed_values(&accel, accel_buffer, ACCELEROM);
-            MahonyAHRSupdate(FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f * 0.0174532925f,
+//            MahonyAHRSupdate(FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f * 0.0174532925f,
+//                               FLOAT_FROM_Q31(gyro.y_fil_q31) * 250.0f * 0.0174532925f,
+//                               FLOAT_FROM_Q31(gyro.z_fil_q31) * 250.0f * 0.0174532925f,
+//                               FLOAT_FROM_Q31(accel.x_fil_q31), 
+//                               FLOAT_FROM_Q31(accel.y_fil_q31), 
+//                               FLOAT_FROM_Q31(accel.z_fil_q31), 
+//                               FLOAT_FROM_Q31(magnet.x_fil_q31), 
+//                               FLOAT_FROM_Q31(magnet.y_fil_q31), 
+//                               FLOAT_FROM_Q31(magnet.z_fil_q31)
+//                               );
+            MahonyAHRSupdateIMU(FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f * 0.0174532925f,
                                FLOAT_FROM_Q31(gyro.y_fil_q31) * 250.0f * 0.0174532925f,
                                FLOAT_FROM_Q31(gyro.z_fil_q31) * 250.0f * 0.0174532925f,
                                FLOAT_FROM_Q31(accel.x_fil_q31), 
                                FLOAT_FROM_Q31(accel.y_fil_q31), 
-                               FLOAT_FROM_Q31(accel.z_fil_q31), 
-                               FLOAT_FROM_Q31(magnet.x_fil_q31), 
-                               FLOAT_FROM_Q31(magnet.y_fil_q31), 
-                               FLOAT_FROM_Q31(magnet.z_fil_q31)
-                               );
+                               FLOAT_FROM_Q31(accel.z_fil_q31));                
 		}
         else if(magnet_ready)
         {
