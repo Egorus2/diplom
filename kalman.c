@@ -2,6 +2,7 @@
 #include "system_stm32f4xx.h"
 
 #include "kalman.h"
+#include <math.h>
 
 void quatMultiply(float *qr, float *q1, float *q2) {
 	qr[0] = q2[0] * q1[0] - q2[1] * q1[1] - q2[2] * q1[2] - q2[3] * q1[3];
@@ -12,14 +13,16 @@ void quatMultiply(float *qr, float *q1, float *q2) {
 
 
 void normalizeQuat(float *qr, float *q) {
-	float norm;
-
-	norm = 1.0f / sqrtf(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
-
-	qr[0] *= norm;
-	qr[1] *= norm;
-	qr[2] *= norm;
-	qr[3] *= norm;
+    float norm = sqrtf(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
+    if (norm < 1e-6f) { 
+        qr[0] = 1.0f; qr[1] = 0.0f; qr[2] = 0.0f; qr[3] = 0.0f;
+        return;
+    }
+    norm = 1.0f / norm;
+    qr[0] = q[0] * norm;  
+    qr[1] = q[1] * norm;
+    qr[2] = q[2] * norm;
+    qr[3] = q[3] * norm;
 }
 
 void rotateVectorByQuat(float *vr, float *v, float *q) {

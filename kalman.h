@@ -2,7 +2,9 @@
 #define KALMAN_H
 
 #include <stdint.h>
-
+    
+    #define M_PI 3.14159265358979323846f
+    
     void quatMultiply(float *qr, float *q1, float *q2);
     void normalizeQuat(float *qr, float *q);
     void rotateVectorByQuat(float *vr, float *v, float *q);
