@@ -12,12 +12,14 @@
 int main(void)
 {
 	//local variables 
+    Kalman_t KalmanRoll;
+    Kalman_t KalmanPitch;
+    
     Sensor_data_t gyro;
 	Sensor_data_t accel;
     Sensor_data_t magnet;
     compl_filter_t compl_filter;
 	uint8_t u = 0;
-    EKF_AHRS ekf;
     float gyro_std_rad[3] = {3.3e-5f, 3.7e-5f, 3.4e-5f};  // 0.002 °/s ? ???/?
     float acc_std[3] = {0.00045f, 0.00031f, 0.00055f};
     float mag_std[3] = {0.001f, 0.001f, 0.001f};  
@@ -26,12 +28,12 @@ int main(void)
 	RCC_Init();
 	sysTickInit();
     
-
+    Kalman_Init(&KalmanRoll);
+    Kalman_Init(&KalmanPitch);
 	
 	usart1_init();
 	
 	imu_util_init(&gyro, &accel, &magnet, &compl_filter);
-    EKF_Init(&ekf, gyro_std_rad, acc_std, mag_std);
     
 
   while(1)
@@ -46,17 +48,24 @@ int main(void)
 		{
 			accel_ready = 0;
 			sensor_processed_values(&accel, accel_buffer, ACCELEROM);
-            EKF_Predict(&ekf, FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f * 0.0174532925f, 
-                              FLOAT_FROM_Q31(gyro.y_fil_q31) * 250.0f * 0.0174532925f, 
-                              FLOAT_FROM_Q31(gyro.z_fil_q31) * 250.0f * 0.0174532925f);
             
-            EKF_Update(&ekf, 
-                               FLOAT_FROM_Q31(accel.x_fil_q31), 
-                               FLOAT_FROM_Q31(accel.y_fil_q31), 
-                               FLOAT_FROM_Q31(accel.z_fil_q31), 
-                               FLOAT_FROM_Q31(magnet.x_fil_q31), 
-                               FLOAT_FROM_Q31(magnet.y_fil_q31), 
-                               FLOAT_FROM_Q31(magnet.z_fil_q31));
+            float roll_acc = atan2f(FLOAT_FROM_Q31(accel.y_fil_q31), FLOAT_FROM_Q31(accel.z_fil_q31)) * 57.2958f;
+
+            float pitch_acc = atan2f(-FLOAT_FROM_Q31(accel.x_fil_q31),sqrtf(FLOAT_FROM_Q31(accel.y_fil_q31)*FLOAT_FROM_Q31(accel.y_fil_q31) + FLOAT_FROM_Q31(accel.z_fil_q31)*FLOAT_FROM_Q31(accel.z_fil_q31)))* 57.2958f;
+            
+            float roll = Kalman_GetAngle(&KalmanRoll,
+                    roll_acc,
+                    FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f,
+                    0.00125f);
+
+            float pitch = Kalman_GetAngle(&KalmanPitch,
+                    pitch_acc,
+                    FLOAT_FROM_Q31(gyro.y_fil_q31) * 250.0f,
+                    0.00125f);
+            
+                char buf1[32];
+                snprintf(buf1, sizeof(buf1), "%.4f, %.4f\r\n", roll, pitch);
+				usart1_Transm_str(buf1, TIMEOUT_USART);
             
 //            MadgwickAHRSupdate(FLOAT_FROM_Q31(gyro.x_fil_q31) * 250.0f * 0.0174532925f,
 //                               FLOAT_FROM_Q31(gyro.y_fil_q31) * 250.0f * 0.0174532925f,
@@ -83,11 +92,10 @@ int main(void)
                 float roll;
                 float pitch;
                 float yaw;
-                EKF_GetOrientation(&ekf, &roll, &pitch, &yaw);
                 //usart1_Transm_str("\x1B[2J\x1B[H", TIMEOUT_USART);    // clear the terminal
-				char buf1[32];
-                snprintf(buf1, sizeof(buf1), "%.4f, %.4f, %.4f\r\n", roll, pitch, yaw);
-				usart1_Transm_str(buf1, TIMEOUT_USART);
+//				char buf1[32];
+//                snprintf(buf1, sizeof(buf1), "%.4f, %.4f, %.4f\r\n", roll, pitch, yaw);
+//				usart1_Transm_str(buf1, TIMEOUT_USART);
                 
 			}            
         }
